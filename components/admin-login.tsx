@@ -35,7 +35,7 @@ export function AdminLogin() {
   return (
     <form onSubmit={onSubmit} className="mx-auto max-w-md border border-line bg-paper px-6 py-8">
       <h1 className="font-serif text-4xl text-bronze">Antworten</h1>
-      <p className="mt-3 text-ink-soft">Diese Seite ist nur für Helen und Oli.</p>
+      <p className="mt-3 text-ink-soft">Diese Seite ist nur für Helen und Oliver.</p>
       {error ? (
         <p role="alert" className="mt-4 border border-wine/30 bg-wine/5 px-3 py-2 text-wine">
           {error}

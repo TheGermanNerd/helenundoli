@@ -30,7 +30,8 @@ export function Welcome() {
               <span className="font-serif text-[0.68rem] tracking-[0.42em] text-ink">UND</span>
               <span className="h-px flex-1 bg-gold" />
             </span>
-            <span className="block font-script text-7xl leading-none sm:text-8xl">Oli</span>
+            {/* Great Vibes: der Schwung von „Oliver“ ragt über die Zeile, die Unterlängen von „Helen“ nicht. */}
+            <span className="block pt-[0.16em] font-script text-7xl leading-none sm:text-8xl">Oliver</span>
           </h1>
 
           <p className="mx-auto mt-8 max-w-xs font-serif text-lg leading-relaxed text-ink-soft">{wedding.welcome}</p>

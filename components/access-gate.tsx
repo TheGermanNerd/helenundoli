@@ -40,7 +40,7 @@ export function AccessGate() {
           <p className="font-script text-6xl leading-none text-bronze sm:text-7xl">
             <span className="block">Helen</span>
             <span className="my-1 block font-serif text-[0.68rem] tracking-[0.42em] text-ink">UND</span>
-            <span className="block">Oli</span>
+            <span className="block">Oliver</span>
           </p>
           <h1 className="mt-6 font-serif text-4xl text-bronze">Schön, dass ihr da seid.</h1>
           <p className="mx-auto mt-4 max-w-sm leading-relaxed text-ink-soft">

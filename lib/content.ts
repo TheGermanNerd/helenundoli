@@ -2,17 +2,17 @@
  * Texte der Einladung. Antwortfrist und Uhrzeiten sind Platzhalter.
  */
 export const wedding = {
-  couple: "Helen & Oli",
+  couple: "Helen & Oliver",
   date: "23. Oktober 2027",
   replyBy: "1. August 2026",
   welcome:
     "Der Herbst ist unsere liebste Jahreszeit: warmes Licht, rote Blätter, lange Abende. An so einem Tag wollen wir heiraten und euch um uns haben.",
-  place: "Die standesamtliche Trauung ist im Rathaus in Borghorst. Danach feiern wir bei Thies 42.",
+  place: "Die standesamtliche Trauung ist im Heimathaus in Borghorst. Danach feiern wir bei Thies 42.",
   ceremony: {
     title: "Standesamtliche Trauung",
-    venue: "Rathaus Borghorst",
-    lines: ["Emsdettener Straße 40", "48565 Borghorst"],
-    mapsQuery: "Rathaus Borghorst, Emsdettener Straße 40, 48565 Steinfurt",
+    venue: "Heimathaus Borghorst",
+    lines: ["Münsterstraße 7", "48565 Borghorst"],
+    mapsQuery: "Heimathaus Borghorst, Münsterstraße 7, 48565 Steinfurt",
   },
   celebration: {
     title: "Essen und Tanzen danach",
@@ -32,12 +32,12 @@ export const wedding = {
     {
       question: "Wo können wir parken?",
       answer:
-        "Am Rathaus in Borghorst und bei Thies 42 gibt es Parkplätze in der Nähe. Kommt gern ein wenig früher an.",
+        "Am Heimathaus in Borghorst und bei Thies 42 gibt es Parkplätze in der Nähe. Kommt gern ein wenig früher an.",
     },
     {
       question: "Wie kommen wir von der Trauung zur Feier?",
       answer:
-        "Die Trauung ist im Rathaus in Borghorst, gefeiert wird bei Thies 42 in Neuenkirchen. Dazwischen fahrt ihr mit dem Auto. Die Routen stehen oben bei Datum und Ort.",
+        "Die Trauung ist im Heimathaus in Borghorst, gefeiert wird bei Thies 42 in Neuenkirchen. Dazwischen fahrt ihr mit dem Auto. Die Routen stehen oben bei Datum und Ort.",
     },
     {
       question: "Sind Kinder willkommen?",
@@ -59,7 +59,7 @@ export const wedding = {
     {
       time: "14:00",
       title: "Standesamtliche Trauung",
-      text: "Wir geben uns das Ja-Wort im Rathaus in Borghorst. Kommt gern ein wenig früher, damit ihr in Ruhe ankommt.",
+      text: "Wir geben uns das Ja-Wort im Heimathaus in Borghorst. Kommt gern ein wenig früher, damit ihr in Ruhe ankommt.",
     },
     {
       time: "15:00",

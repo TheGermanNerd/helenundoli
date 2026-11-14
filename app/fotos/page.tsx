@@ -11,7 +11,7 @@ import { PhotoUpload } from "@/components/photo-upload";
 import { Stationery } from "@/components/ornaments";
 
 export const metadata: Metadata = {
-  title: "Fotos schicken · Helen & Oli",
+  title: "Fotos schicken · Helen & Oliver",
   robots: { index: false, follow: false },
 };
 
@@ -47,7 +47,7 @@ function GuestFrame({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-30 border-b border-gold/40 bg-linen/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-2xl items-center justify-between px-5 py-3">
           <Link href="/" className="font-script text-3xl leading-none text-bronze">
-            Helen & Oli
+            Helen & Oliver
           </Link>
           <Link
             href="/"

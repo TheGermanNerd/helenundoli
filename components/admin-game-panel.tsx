@@ -54,7 +54,7 @@ export function AdminGamePanel({
             </button>
           ) : null}
         </div>
-        <p className="mt-2 hidden text-center font-script text-4xl text-bronze print:block">Helen & Oli</p>
+        <p className="mt-2 hidden text-center font-script text-4xl text-bronze print:block">Helen & Oliver</p>
         {localQr ? (
           <p className="mt-3 border border-gold bg-cream px-3 py-2 text-sm print:hidden">
             Diese Codes gelten nur für diesen Rechner. Zum Ausdrucken die Verwaltung auf der öffentlichen Adresse öffnen.

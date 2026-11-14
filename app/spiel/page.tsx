@@ -12,7 +12,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 
 export const metadata: Metadata = {
-  title: "Spiel · Helen & Oli",
+  title: "Spiel · Helen & Oliver",
   description: "Aufgaben erledigen, QR-Code scannen und Punkte für den Preis sammeln.",
 };
 

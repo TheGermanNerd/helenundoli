@@ -21,7 +21,7 @@ const sans = Source_Sans_3({
 });
 
 export const metadata: Metadata = {
-  title: "Helen & Oli",
+  title: "Helen & Oliver",
   description: "Wir heiraten. Hier findet ihr Datum, Ort und Ablauf und könnt uns zusagen.",
 };
 

@@ -10,8 +10,8 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 
 export const metadata: Metadata = {
-  title: "Bilder · Helen & Oli",
-  description: "Bilder von der Hochzeit von Helen und Oli.",
+  title: "Bilder · Helen & Oliver",
+  description: "Bilder von der Hochzeit von Helen und Oliver.",
 };
 
 export default function BilderPage() {

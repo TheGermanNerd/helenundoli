@@ -11,7 +11,7 @@ import { AdminLogin } from "@/components/admin-login";
 import { AdminDashboard } from "@/components/admin-dashboard";
 
 export const metadata: Metadata = {
-  title: "Antworten · Helen & Oli",
+  title: "Antworten · Helen & Oliver",
   robots: { index: false, follow: false },
 };
 
@@ -62,7 +62,7 @@ function AdminFrame({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-30 border-b border-gold/40 bg-linen/90 backdrop-blur-md print:hidden">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3">
           <Link href="/" className="font-script text-3xl leading-none text-bronze">
-            Helen & Oli
+            Helen & Oliver
           </Link>
           <Link href="/" className="font-serif text-[0.68rem] font-medium tracking-[0.16em] text-ink-soft uppercase hover:text-bronze">
             Zur Einladung

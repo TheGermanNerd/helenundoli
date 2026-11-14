@@ -21,7 +21,7 @@ export async function SiteHeader() {
     <header className="sticky top-0 z-30 border-b border-gold/40 bg-linen/90 backdrop-blur-md">
       <div className="mx-auto flex max-w-5xl flex-col gap-2 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
         <Link href="/#willkommen" className="font-script text-3xl leading-none text-bronze">
-          Helen & Oli
+          Helen & Oliver
         </Link>
         <nav aria-label="Abschnitte" className="flex flex-wrap gap-x-4 gap-y-1">
           {items.map((link) => (
