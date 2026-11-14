@@ -59,10 +59,12 @@ if [[ ! -f "$ENV_FILE" ]]; then
     local prompt="$1"
     local value=""
     while [[ -z "$value" ]]; do
-      read -r -s -p "$prompt" value </dev/tty
-      echo
+      printf '%s' "$prompt" >/dev/tty
+      IFS= read -r -s value </dev/tty
+      printf '\n' >/dev/tty
+      value="${value//$'\r'/}"
       if [[ -z "$value" ]]; then
-        echo "Enter a value." >&2
+        echo "Enter a value." >/dev/tty
       fi
     done
     printf '%s' "$value"
@@ -79,8 +81,9 @@ import sys
 path = sys.argv[1]
 
 def encode(value: str) -> str:
-    if "\n" in value or "\r" in value or "\x00" in value:
-        raise SystemExit("A value cannot contain a line break.")
+    value = value.replace("\r", "").replace("\n", "").replace("\x00", "")
+    if not value:
+        raise SystemExit("Enter a value.")
     escaped = value.replace("$", "\\$")
     if '"' not in value and "\\" not in value:
         return '"' + escaped + '"'
