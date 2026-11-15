@@ -11,6 +11,24 @@
 # again because the unit has Restart=always.
 set -eEuo pipefail
 
+APP_USER="helenundoli"
+APP_DIR="/var/www/helenundoli"
+NPM_HOME="/var/cache/helenundoli-npm"
+
+# Git refuses a checkout owned by another user. The service user owns this
+# one. Drop root before copying the snapshot, or that copy is mode 700 and
+# the service user cannot read it. SUDO_UID would make root trust the admin's
+# files instead of helenundoli's, so it is cleared with the user switch.
+if [[ "$(id -u)" -eq 0 ]]; then
+  exec runuser -u "$APP_USER" -- env \
+    -u SUDO_UID -u SUDO_GID -u SUDO_USER -u SUDO_COMMAND \
+    HOME="$NPM_HOME" \
+    npm_config_cache="$NPM_HOME" \
+    HELENUNDOLI_APPLY_ONLY="${HELENUNDOLI_APPLY_ONLY:-}" \
+    HELENUNDOLI_SERVICE_PID="${HELENUNDOLI_SERVICE_PID:-}" \
+    bash "$0"
+fi
+
 # This file lives in the checkout `git reset` replaces. Run a snapshot from
 # outside the checkout so the reset cannot change the script mid-run.
 if [[ -z "${HELENUNDOLI_APPLY_SNAPSHOT:-}" ]]; then
@@ -30,6 +48,14 @@ STARTED="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 BRANCH=""
 
 export GIT_TERMINAL_PROMPT=0
+export HOME="$NPM_HOME"
+export npm_config_cache="$NPM_HOME"
+
+# Command-line config is protected, so this still counts when the checkout
+# belongs to another user. Every git call in this script goes through here.
+git() {
+  command git -c "safe.directory=${APP_DIR}" "$@"
+}
 
 valid_branch() {
   local name="$1"

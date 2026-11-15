@@ -30,13 +30,27 @@ if [[ ! -d "$APP_DIR/.git" ]]; then
 fi
 
 install -d -o "$APP_USER" -g "$APP_USER" "$NPM_HOME" "$APP_DIR/data" "$APP_DIR/data/photos"
+chown -R "$APP_USER:$APP_USER" "$APP_DIR" "$NPM_HOME"
+
+# Set this from outside the checkout. Git refuses the command when it is
+# started inside a repository owned by someone else.
+(
+  cd /
+  if ! git config --system --get-all safe.directory 2>/dev/null | grep -Fxq "$APP_DIR"; then
+    git config --system --add safe.directory "$APP_DIR"
+  fi
+)
 
 if [[ ! -f "$APP_DIR/deploy/apply-update.sh" ]]; then
   echo "Missing $APP_DIR/deploy/apply-update.sh" >&2
   exit 1
 fi
 
-runuser -u "$APP_USER" -- env npm_config_cache="$NPM_HOME" HELENUNDOLI_APPLY_ONLY=1 \
+runuser -u "$APP_USER" -- env \
+  -u SUDO_UID -u SUDO_GID -u SUDO_USER -u SUDO_COMMAND \
+  HOME="$NPM_HOME" \
+  npm_config_cache="$NPM_HOME" \
+  HELENUNDOLI_APPLY_ONLY=1 \
   bash "$APP_DIR/deploy/apply-update.sh"
 
 install -m 644 "$APP_DIR/deploy/helenundoli.service" /etc/systemd/system/helenundoli.service
