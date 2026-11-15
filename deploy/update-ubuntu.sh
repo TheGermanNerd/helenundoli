@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Pull a newer commit, rebuild, and restart. Leaves .env.local and data/ in place.
+# Pull a newer commit, rebuild, restart, and reboot the server.
+# Leaves .env.local and data/ in place.
 #   sudo bash /var/www/helenundoli/deploy/update-ubuntu.sh
 set -euo pipefail
 
@@ -35,5 +36,6 @@ if ! systemctl is-active --quiet helenundoli || ! systemctl is-active --quiet ng
   exit 1
 fi
 
-echo "Updated. helenundoli and nginx will start automatically after a reboot."
-echo "$APP_DIR/.env.local and $APP_DIR/data were left unchanged."
+echo "Updated. $APP_DIR/.env.local and $APP_DIR/data were left unchanged."
+echo "Rebooting the server. helenundoli and nginx start automatically."
+systemctl reboot
