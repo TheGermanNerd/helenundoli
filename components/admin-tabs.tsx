@@ -22,7 +22,7 @@ export function AdminTabs({
     tab === "rsvp" ? "Antworten" : tab === "photos" ? "Bilder" : tab === "game" ? "Spiel" : "Einstellungen";
   const description =
     tab === "rsvp"
-      ? "Mehrere Antworten derselben Person bleiben alle stehen. Einzelne Gäste könnt ihr nachträglich absagen."
+      ? "Mehrere Antworten derselben Person bleiben alle stehen. Einzelne Gäste könnt ihr absagen oder ganz löschen."
       : tab === "photos"
         ? "Freigegebene Bilder erscheinen auf der Bilder-Seite."
         : tab === "game"
