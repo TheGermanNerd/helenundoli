@@ -4,6 +4,17 @@
 #   sudo bash /var/www/helenundoli/deploy/update-ubuntu.sh
 set -euo pipefail
 
+# This file sits in the checkout `git pull` replaces. Bash keeps running the
+# copy it opened, so a pull that changes this script would finish the old
+# copy and skip the reboot. Run a snapshot from outside the checkout.
+if [[ -z "${HELENUNDOLI_UPDATE_SNAPSHOT:-}" ]]; then
+  snapshot="$(mktemp)"
+  cp -- "$0" "$snapshot"
+  chmod 700 "$snapshot"
+  export HELENUNDOLI_UPDATE_SNAPSHOT=1
+  exec bash "$snapshot"
+fi
+
 APP_USER="helenundoli"
 APP_DIR="/var/www/helenundoli"
 NPM_HOME="/var/cache/helenundoli-npm"
@@ -38,4 +49,12 @@ fi
 
 echo "Updated. $APP_DIR/.env.local and $APP_DIR/data were left unchanged."
 echo "Rebooting the server. helenundoli and nginx start automatically."
-systemctl reboot
+# `systemctl reboot` is tied to this SSH session. Logind cancels it when the
+# session closes, and a shutdown inhibitor (apt, unattended-upgrades) can
+# delay it until that happens. A system timer is outside the session.
+trap '' HUP INT TERM
+if ! systemd-run --quiet --collect \
+  --on-active=2s --timer-property=AccuracySec=1s \
+  /usr/bin/systemctl start --job-mode=replace-irreversibly reboot.target; then
+  systemctl start --job-mode=replace-irreversibly reboot.target
+fi
