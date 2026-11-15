@@ -1,11 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { MAX_PHOTO_BYTES, MAX_PHOTOS } from "@/lib/photo-limits";
 
 const fieldClass = "mt-2 w-full rounded-xl border border-line bg-cream px-3 py-2.5 text-ink";
 
-export function PhotoUpload({ autoApprove = false }: { autoApprove?: boolean }) {
+export function PhotoUpload({
+  autoApprove = false,
+  galleryOpen = false,
+}: {
+  autoApprove?: boolean;
+  galleryOpen?: boolean;
+}) {
   const [name, setName] = useState("");
   const [caption, setCaption] = useState("");
   const [fax, setFax] = useState("");
@@ -28,18 +35,25 @@ export function PhotoUpload({ autoApprove = false }: { autoApprove?: boolean }) 
             {done.failed === 1 ? "Ein Bild" : `${done.failed} Bilder`} konnten wir nicht lesen.
           </p>
         ) : null}
-        <button
-          type="button"
-          onClick={() => {
-            setDone(null);
-            setCaption("");
-            setFiles([]);
-            setError("");
-          }}
-          className="mt-8 rounded-xl border border-wine px-5 py-3 text-wine hover:bg-wine hover:text-paper"
-        >
-          Weitere Bilder teilen
-        </button>
+        <div className="mt-8 flex flex-col items-center gap-4">
+          <button
+            type="button"
+            onClick={() => {
+              setDone(null);
+              setCaption("");
+              setFiles([]);
+              setError("");
+            }}
+            className="rounded-xl border border-wine px-5 py-3 text-wine hover:bg-wine hover:text-paper"
+          >
+            Weitere Bilder teilen
+          </button>
+          {galleryOpen ? (
+            <Link href="/bilder" className="text-wine underline decoration-wine/40 underline-offset-4 hover:text-wine-deep">
+              Zu den Bildern
+            </Link>
+          ) : null}
+        </div>
       </div>
     );
   }
@@ -62,6 +76,10 @@ export function PhotoUpload({ autoApprove = false }: { autoApprove?: boolean }) 
     const problem = formError();
     if (problem) {
       setError(problem);
+      return;
+    }
+    if (autoApprove) {
+      void upload();
       return;
     }
     setConfirming(true);
@@ -189,24 +207,19 @@ export function PhotoUpload({ autoApprove = false }: { autoApprove?: boolean }) 
         {pending ? "Wird gesendet…" : "Bilder senden"}
       </button>
     </form>
-    <ApprovalNote
-      open={confirming}
-      autoApprove={autoApprove}
-      onCancel={() => setConfirming(false)}
-      onConfirm={upload}
-    />
+    {autoApprove ? null : (
+      <ApprovalNote open={confirming} onCancel={() => setConfirming(false)} onConfirm={upload} />
+    )}
     </>
   );
 }
 
 function ApprovalNote({
   open,
-  autoApprove,
   onCancel,
   onConfirm,
 }: {
   open: boolean;
-  autoApprove: boolean;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
@@ -244,12 +257,10 @@ function ApprovalNote({
     >
       <div className="bg-paper px-6 py-8 text-left text-ink sm:px-8">
         <h2 id="photo-approval-title" className="font-serif text-3xl text-bronze">
-          {autoApprove ? "Direkt auf der Seite" : "Noch nicht sichtbar"}
+          Noch nicht sichtbar
         </h2>
         <p id="photo-approval-note" className="mt-4 leading-relaxed text-ink-soft">
-          {autoApprove
-            ? "Die hochgeladenen Bilder sind danach in der Kategorie „Bilder“ zu sehen."
-            : "Die hochgeladenen Bilder sind in der Kategorie „Bilder“ erst zu sehen, nachdem wir sie freigegeben haben."}
+          Die hochgeladenen Bilder sind in der Kategorie „Bilder“ erst zu sehen, nachdem wir sie freigegeben haben.
         </p>
         <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <button type="button" onClick={onCancel} className="rounded-xl border border-line px-5 py-3 text-ink hover:border-wine">

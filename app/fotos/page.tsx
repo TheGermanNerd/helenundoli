@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { hasAccess } from "@/lib/access";
-import { autoApproveEnabled, uploadButtonEnabled } from "@/lib/photos";
+import { autoApproveEnabled, galleryEnabled, uploadButtonEnabled } from "@/lib/photos";
 import { AccessGate } from "@/components/access-gate";
 import { PhotoUpload } from "@/components/photo-upload";
 import { Stationery } from "@/components/ornaments";
@@ -35,7 +35,7 @@ async function FotosContent() {
 
   return (
     <GuestFrame>
-      <PhotoUpload autoApprove={autoApproveEnabled()} />
+      <PhotoUpload autoApprove={autoApproveEnabled()} galleryOpen={galleryEnabled()} />
     </GuestFrame>
   );
 }
