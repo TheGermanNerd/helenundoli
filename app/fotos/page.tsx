@@ -4,14 +4,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { hasAccess } from "@/lib/access";
-import { isPhotoUnlocked, photoUploadReady } from "@/lib/auth";
-import { galleryEnabled } from "@/lib/photos";
+import { uploadButtonEnabled } from "@/lib/photos";
 import { AccessGate } from "@/components/access-gate";
 import { PhotoUpload } from "@/components/photo-upload";
 import { Stationery } from "@/components/ornaments";
 
 export const metadata: Metadata = {
-  title: "Fotos schicken · Helen & Oliver",
+  title: "Fotos teilen · Helen & Oliver",
   robots: { index: false, follow: false },
 };
 
@@ -31,12 +30,12 @@ export default function FotosPage() {
 
 async function FotosContent() {
   await connection();
-  if (!galleryEnabled()) notFound();
+  if (!uploadButtonEnabled()) notFound();
   if (!(await hasAccess())) return <AccessGate />;
 
   return (
     <GuestFrame>
-      <PhotoUpload unlocked={await isPhotoUnlocked()} ready={photoUploadReady()} />
+      <PhotoUpload />
     </GuestFrame>
   );
 }

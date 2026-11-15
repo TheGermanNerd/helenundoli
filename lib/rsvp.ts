@@ -70,6 +70,93 @@ export function mealLabel(value: string | null) {
   }
 }
 
+export type ManagedGuest = {
+  name: string;
+  meal: Meal | null;
+  attending: boolean;
+};
+
+export type GuestSource = {
+  attending: number;
+  guest_count: number;
+  guest_names: string | null;
+  meal: string | null;
+  guest_flags: string | null;
+};
+
+function parseFlags(raw: string | null) {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed) || parsed.length === 0) return null;
+    if (!parsed.every((item) => typeof item === "boolean")) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function splitGuestNames(raw: string | null, expected: number) {
+  const value = (raw ?? "").replace(/\r\n/g, "\n").trim();
+  if (!value) return [];
+
+  if (value.includes("\n")) {
+    return value.split("\n").map((part) => part.trim()).filter(Boolean);
+  }
+
+  const commas = value.split(",").map((part) => part.trim()).filter(Boolean);
+  if (commas.length > 1 && (expected <= 0 || commas.length === expected)) return commas;
+  return [value];
+}
+
+function mealsForCount(value: string | null, count: number): (Meal | null)[] {
+  if (count === 0) return [];
+  if (!value) return Array.from({ length: count }, () => null);
+  if (isMeal(value)) return Array.from({ length: count }, () => value);
+
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (Array.isArray(parsed)) {
+      return Array.from({ length: count }, (_, index) => {
+        const item = parsed[index];
+        return typeof item === "string" && isMeal(item) ? item : null;
+      });
+    }
+  } catch {
+    // Older answers may store a meal the current list does not know.
+  }
+
+  return Array.from({ length: count }, () => null);
+}
+
+export function managedGuests(row: GuestSource): ManagedGuest[] {
+  const flags = parseFlags(row.guest_flags);
+  const expected = flags?.length ?? (row.guest_count > 0 ? row.guest_count : 0);
+  const names = splitGuestNames(row.guest_names, expected);
+  if (names.length === 0) return [];
+
+  const meals = mealsForCount(row.meal, names.length);
+  const aligned = flags && flags.length === names.length ? flags : null;
+  return names.map((name, index) => ({
+    name,
+    meal: meals[index] ?? null,
+    attending: aligned ? aligned[index] : row.attending === 1,
+  }));
+}
+
+export function attendingMealLabel(guests: ManagedGuest[]) {
+  const labels = guests
+    .filter((guest) => guest.attending)
+    .map((guest) => (guest.meal ? mealName(guest.meal) ?? "—" : "—"));
+  if (labels.length === 0) return "—";
+  if (labels.every((label) => label === labels[0])) return labels[0];
+  return labels.join("\n");
+}
+
+export function exportGuestNames(guests: ManagedGuest[]) {
+  return guests.map((guest) => (guest.attending ? guest.name : `${guest.name} (abgesagt)`)).join("\n");
+}
+
 function guestLine(guest: Guest) {
   return [guest.firstName, guest.lastName].filter(Boolean).join(" ");
 }
@@ -77,7 +164,6 @@ function guestLine(guest: Guest) {
 function readGuests(
   input: Record<string, unknown>,
   guestCount: number,
-  contactName: string,
 ): { ok: false; error: string } | { ok: true; guestNames: string; meal: string } {
   const raw = input.guests;
   if (!Array.isArray(raw) || raw.length !== guestCount) {
@@ -91,20 +177,16 @@ function readGuests(
       return { ok: false, error: "Bitte gebt für jede Person einen Menüwunsch an." };
     }
 
-    let firstName = contactName;
-    let lastName = "";
-    if (index > 0) {
-      firstName = cleanLine(readString(item, "firstName"));
-      lastName = cleanLine(readString(item, "lastName"));
-      if (!firstName) {
-        return { ok: false, error: `Bitte gebt den Vornamen von Gast ${index + 1} an.` };
-      }
-      if (firstName.length > 80) {
-        return { ok: false, error: `Der Vorname von Gast ${index + 1} ist zu lang.` };
-      }
-      if (lastName.length > 80) {
-        return { ok: false, error: `Der Nachname von Gast ${index + 1} ist zu lang.` };
-      }
+    const firstName = cleanLine(readString(item, "firstName"));
+    const lastName = cleanLine(readString(item, "lastName"));
+    if (!firstName) {
+      return { ok: false, error: `Bitte gebt den Vornamen von Gast ${index + 1} an.` };
+    }
+    if (firstName.length > 80) {
+      return { ok: false, error: `Der Vorname von Gast ${index + 1} ist zu lang.` };
+    }
+    if (lastName.length > 80) {
+      return { ok: false, error: `Der Nachname von Gast ${index + 1} ist zu lang.` };
     }
 
     const meal = readString(item, "meal");
@@ -136,16 +218,21 @@ export function parseRsvp(input: unknown): ParseResult {
     return { status: "ignored" };
   }
 
-  const name = cleanLine(readString(input, "name"));
-  if (!name) {
-    return { status: "error", error: "Bitte gebt einen Namen an." };
+  const firstName = cleanLine(readString(input, "firstName"));
+  const lastName = cleanLine(readString(input, "lastName"));
+  if (!firstName) {
+    return { status: "error", error: "Bitte gebt einen Vornamen an." };
   }
-  if (name.length > 120) {
-    return { status: "error", error: "Der Name ist zu lang." };
+  if (firstName.length > 80) {
+    return { status: "error", error: "Der Vorname ist zu lang." };
   }
+  if (lastName.length > 80) {
+    return { status: "error", error: "Der Nachname ist zu lang." };
+  }
+  const name = [firstName, lastName].filter(Boolean).join(" ");
 
   const email = cleanLine(readString(input, "email"));
-  if (!EMAIL.test(email) || email.length > 254) {
+  if (email && (!EMAIL.test(email) || email.length > 254)) {
     return { status: "error", error: "Bitte gebt eine gültige E-Mail-Adresse an." };
   }
 
@@ -178,7 +265,7 @@ export function parseRsvp(input: unknown): ParseResult {
     return { status: "error", error: "Die Anzahl Personen liegt zwischen 1 und 20." };
   }
 
-  const guests = readGuests(input, guestCount, name);
+  const guests = readGuests(input, guestCount);
   if (!guests.ok) {
     return { status: "error", error: guests.error };
   }

@@ -1,11 +1,10 @@
 import fs from "node:fs";
 import { NextResponse } from "next/server";
 import { hasAccess } from "@/lib/access";
-import { isPhotoUnlocked } from "@/lib/auth";
 import {
   MAX_PHOTOS,
   PhotoError,
-  galleryEnabled,
+  uploadButtonEnabled,
   insertPhoto,
   parsePhotoFields,
   photoFilePath,
@@ -20,14 +19,11 @@ function textField(form: FormData, key: string) {
 const noStore = { "Cache-Control": "no-store" };
 
 export async function POST(request: Request) {
-  if (!galleryEnabled()) {
-    return NextResponse.json({ error: "Die Bilder sind ausgeschaltet." }, { status: 404, headers: noStore });
+  if (!uploadButtonEnabled()) {
+    return NextResponse.json({ error: "Fotos teilen ist ausgeschaltet." }, { status: 404, headers: noStore });
   }
   if (!(await hasAccess())) {
     return NextResponse.json({ error: "Bitte gebt zuerst den Zugangscode ein." }, { status: 401, headers: noStore });
-  }
-  if (!(await isPhotoUnlocked())) {
-    return NextResponse.json({ error: "Bitte gebt zuerst den Foto-Code ein." }, { status: 401, headers: noStore });
   }
 
   let form: FormData;

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { parseSettings, parseTaskFields, pointsLabel, TASK_LIMIT } from "@/lib/game-input";
 import { formatTimestamp } from "@/lib/format";
 
-const fieldClass = "mt-2 w-full border border-line bg-cream px-3 py-2.5 text-ink";
+const fieldClass = "mt-2 w-full rounded-xl border border-line bg-cream px-3 py-2.5 text-ink";
 
 type Settings = {
   prizeTitle: string;
@@ -43,13 +43,12 @@ export function AdminGamePanel({
 
   return (
     <div className="space-y-10">
-      <VisibilityForm enabled={settings.enabled} />
       <SettingsForm settings={settings} />
       <section>
         <div className="flex flex-wrap items-end justify-between gap-3 print:hidden">
           <h2 className="font-serif text-3xl text-bronze">Aufgaben</h2>
           {tasks.length > 0 ? (
-            <button type="button" onClick={() => window.print()} className="border border-wine px-4 py-2 text-sm text-wine hover:bg-wine hover:text-paper">
+            <button type="button" onClick={() => window.print()} className="rounded-xl border border-wine px-4 py-2 text-sm text-wine hover:bg-wine hover:text-paper">
               QR-Codes drucken
             </button>
           ) : null}
@@ -73,30 +72,6 @@ export function AdminGamePanel({
       </section>
       <PlayerList players={players} />
     </div>
-  );
-}
-
-function VisibilityForm({ enabled }: { enabled: boolean }) {
-  const { post, pending, error } = useGamePost();
-
-  return (
-    <form
-      onSubmit={(event) => {
-        event.preventDefault();
-        void post({ action: "setEnabled", enabled: !enabled });
-      }}
-      className="border border-line bg-paper px-4 py-4 print:hidden"
-    >
-      <h2 className="font-serif text-3xl text-bronze">Spiel für Gäste</h2>
-      <p className="mt-2 text-sm text-ink-soft">
-        Der Menüpunkt und die Seite sind nur sichtbar, solange das Spiel eingeschaltet ist.
-      </p>
-      <p className="mt-3 text-sm">{enabled ? "Das Spiel ist eingeschaltet." : "Das Spiel ist ausgeschaltet."}</p>
-      {error ? <ErrorNote message={error} /> : null}
-      <button type="submit" disabled={pending} className="mt-4 bg-wine px-4 py-2 text-sm text-paper hover:bg-wine-deep disabled:opacity-60">
-        {pending ? "Wird gespeichert…" : enabled ? "Spiel ausschalten" : "Spiel einschalten"}
-      </button>
-    </form>
   );
 }
 
@@ -157,7 +132,7 @@ function SettingsForm({ settings }: { settings: Settings }) {
         <textarea id="prize-text" rows={3} value={prizeText} onChange={(event) => setPrizeText(event.target.value)} className={fieldClass} />
       </div>
       {error ? <ErrorNote message={error} /> : null}
-      <button type="submit" disabled={pending} className="mt-4 bg-wine px-4 py-2 text-sm text-paper hover:bg-wine-deep disabled:opacity-60">
+      <button type="submit" disabled={pending} className="mt-4 rounded-xl bg-wine px-4 py-2 text-sm text-paper hover:bg-wine-deep disabled:opacity-60">
         {pending ? "Wird gespeichert…" : "Preis speichern"}
       </button>
     </form>
@@ -229,14 +204,14 @@ function TaskEditor({ task, index, total }: { task: TaskCard; index: number; tot
         </div>
         {error ? <ErrorNote message={error} /> : null}
         <div className="mt-4 flex flex-wrap gap-2">
-          <button type="submit" disabled={pending} className="bg-wine px-3 py-2 text-sm text-paper hover:bg-wine-deep disabled:opacity-60">
+          <button type="submit" disabled={pending} className="rounded-xl bg-wine px-3 py-2 text-sm text-paper hover:bg-wine-deep disabled:opacity-60">
             {pending ? "Wird gespeichert…" : "Speichern"}
           </button>
           <button
             type="button"
             disabled={pending || index === 0}
             onClick={() => post({ action: "moveTask", id: task.id, direction: "up" })}
-            className="border border-line px-3 py-2 text-sm hover:border-wine disabled:opacity-40"
+            className="rounded-xl border border-line px-3 py-2 text-sm hover:border-wine disabled:opacity-40"
           >
             Nach oben
           </button>
@@ -244,7 +219,7 @@ function TaskEditor({ task, index, total }: { task: TaskCard; index: number; tot
             type="button"
             disabled={pending || index === total - 1}
             onClick={() => post({ action: "moveTask", id: task.id, direction: "down" })}
-            className="border border-line px-3 py-2 text-sm hover:border-wine disabled:opacity-40"
+            className="rounded-xl border border-line px-3 py-2 text-sm hover:border-wine disabled:opacity-40"
           >
             Nach unten
           </button>
@@ -338,7 +313,7 @@ function NewTaskForm() {
         />
       </div>
       {error ? <ErrorNote message={error} /> : null}
-      <button type="submit" disabled={pending} className="mt-4 bg-wine px-4 py-2 text-sm text-paper hover:bg-wine-deep disabled:opacity-60">
+      <button type="submit" disabled={pending} className="mt-4 rounded-xl bg-wine px-4 py-2 text-sm text-paper hover:bg-wine-deep disabled:opacity-60">
         {pending ? "Wird gespeichert…" : "Aufgabe anlegen"}
       </button>
     </form>

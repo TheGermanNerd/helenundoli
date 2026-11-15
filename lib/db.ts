@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import Database from "better-sqlite3";
-import type { NewRsvp } from "@/lib/rsvp";
+import { managedGuests, type ManagedGuest, type NewRsvp } from "@/lib/rsvp";
 
 export type RsvpRow = {
   id: number;
@@ -12,6 +12,7 @@ export type RsvpRow = {
   guest_names: string | null;
   meal: string | null;
   message: string | null;
+  guest_flags: string | null;
   created_at: string;
 };
 
@@ -20,7 +21,7 @@ const globalForDb = globalThis as unknown as {
   __schemaVersion?: number;
 };
 
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 7;
 
 function ensureSchema(database: Database.Database) {
   database.exec(`
@@ -73,7 +74,8 @@ function ensureSchema(database: Database.Database) {
     );
     CREATE TABLE IF NOT EXISTS gallery_settings (
       id INTEGER PRIMARY KEY CHECK (id = 1),
-      enabled INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0, 1))
+      enabled INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0, 1)),
+      button_enabled INTEGER NOT NULL DEFAULT 1 CHECK (button_enabled IN (0, 1))
     );
   `);
   const columns = database.prepare("PRAGMA table_info(game_settings)").all() as { name: string }[];
@@ -81,6 +83,16 @@ function ensureSchema(database: Database.Database) {
     database.exec(
       "ALTER TABLE game_settings ADD COLUMN enabled INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0, 1))",
     );
+  }
+  const galleryColumns = database.prepare("PRAGMA table_info(gallery_settings)").all() as { name: string }[];
+  if (!galleryColumns.some((column) => column.name === "button_enabled")) {
+    database.exec(
+      "ALTER TABLE gallery_settings ADD COLUMN button_enabled INTEGER NOT NULL DEFAULT 1 CHECK (button_enabled IN (0, 1))",
+    );
+  }
+  const rsvpColumns = database.prepare("PRAGMA table_info(rsvps)").all() as { name: string }[];
+  if (!rsvpColumns.some((column) => column.name === "guest_flags")) {
+    database.exec("ALTER TABLE rsvps ADD COLUMN guest_flags TEXT");
   }
   database
     .prepare(
@@ -144,11 +156,75 @@ export function listRsvps() {
 }
 
 export function summarize() {
-  const yes = getDb().prepare("SELECT COUNT(*) AS n FROM rsvps WHERE attending = 1").get() as { n: number };
-  const no = getDb().prepare("SELECT COUNT(*) AS n FROM rsvps WHERE attending = 0").get() as { n: number };
-  const people = getDb()
-    .prepare("SELECT COALESCE(SUM(guest_count), 0) AS n FROM rsvps WHERE attending = 1")
-    .get() as { n: number };
+  const rows = listRsvps();
+  let yes = 0;
+  let no = 0;
+  let people = 0;
 
-  return { yes: yes.n, no: no.n, people: people.n };
+  for (const row of rows) {
+    const guests = managedGuests(row);
+    if (guests.length === 0) {
+      if (row.attending) yes += 1;
+      else no += 1;
+      continue;
+    }
+
+    const declined = guests.filter((guest) => !guest.attending).length;
+    const coming = guests.length - declined;
+    no += declined;
+    people += coming;
+    if (coming > 0) yes += 1;
+  }
+
+  return { yes, no, people };
+}
+
+function getRsvp(id: number) {
+  return getDb().prepare("SELECT * FROM rsvps WHERE id = ?").get(id) as RsvpRow | undefined;
+}
+
+function writeAttendance(id: number, guests: ManagedGuest[]) {
+  const coming = guests.filter((guest) => guest.attending).length;
+  getDb()
+    .prepare(
+      `UPDATE rsvps
+       SET guest_flags = @flags, guest_count = @guestCount, attending = @attending
+       WHERE id = @id`,
+    )
+    .run({
+      id,
+      flags: JSON.stringify(guests.map((guest) => guest.attending)),
+      guestCount: coming,
+      attending: coming > 0 ? 1 : 0,
+    });
+}
+
+export function setGuestAttendance(id: number, index: number, attending: boolean) {
+  const row = getRsvp(id);
+  if (!row) return { ok: false as const, error: "Diese Antwort gibt es nicht mehr." };
+  const guests = managedGuests(row);
+  if (!Number.isInteger(index) || index < 0 || index >= guests.length) {
+    return { ok: false as const, error: "Diesen Gast gibt es in der Antwort nicht." };
+  }
+
+  writeAttendance(
+    id,
+    guests.map((guest, guestIndex) => (guestIndex === index ? { ...guest, attending } : guest)),
+  );
+  return { ok: true as const };
+}
+
+export function setPartyAttendance(id: number, attending: boolean) {
+  const row = getRsvp(id);
+  if (!row) return { ok: false as const, error: "Diese Antwort gibt es nicht mehr." };
+  const guests = managedGuests(row);
+  if (guests.length === 0) {
+    return { ok: false as const, error: "Für diese Antwort sind keine Gäste gespeichert." };
+  }
+
+  writeAttendance(
+    id,
+    guests.map((guest) => ({ ...guest, attending })),
+  );
+  return { ok: true as const };
 }

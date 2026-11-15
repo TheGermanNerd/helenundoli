@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
-  serverExternalPackages: ["better-sqlite3", "sharp", "qrcode"],
+  serverExternalPackages: ["archiver", "better-sqlite3", "sharp", "qrcode"],
   turbopack: {
     rules: {
       "*.css": {

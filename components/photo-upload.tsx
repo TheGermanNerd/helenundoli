@@ -1,88 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { MAX_PHOTO_BYTES, MAX_PHOTOS } from "@/lib/photo-limits";
 
-const fieldClass = "mt-2 w-full border border-line bg-cream px-3 py-2.5 text-ink";
+const fieldClass = "mt-2 w-full rounded-xl border border-line bg-cream px-3 py-2.5 text-ink";
 
-export function PhotoUpload({ unlocked, ready }: { unlocked: boolean; ready: boolean }) {
-  if (!ready) {
-    return (
-      <div className="text-center">
-        <h1 className="font-serif text-4xl text-bronze sm:text-5xl">Fotos schicken</h1>
-        <p className="mx-auto mt-4 max-w-md text-ink-soft">Das Hochladen ist noch nicht eingerichtet.</p>
-      </div>
-    );
-  }
-
-  return unlocked ? <UploadForm /> : <UnlockForm />;
-}
-
-function UnlockForm() {
-  const router = useRouter();
-  const [code, setCode] = useState("");
-  const [error, setError] = useState("");
-  const [pending, setPending] = useState(false);
-
-  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError("");
-    setPending(true);
-    try {
-      const response = await fetch("/api/photos/unlock", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code }),
-      });
-      const data = (await response.json().catch(() => null)) as { error?: string } | null;
-      if (!response.ok) {
-        setError(data?.error ?? "Der Code konnte nicht geprüft werden.");
-        return;
-      }
-      router.refresh();
-    } catch {
-      setError("Die Verbindung hat nicht geklappt. Bitte versucht es noch einmal.");
-    } finally {
-      setPending(false);
-    }
-  }
-
-  return (
-    <form onSubmit={onSubmit} className="mx-auto max-w-md text-center">
-      <h1 className="font-serif text-4xl text-bronze sm:text-5xl">Fotos schicken</h1>
-      <p className="mt-4 text-ink-soft">Bitte gebt den Foto-Code ein, den ihr von uns bekommen habt.</p>
-      {error ? (
-        <p role="alert" className="mt-4 border border-wine/30 bg-wine/5 px-3 py-2 text-left text-wine">
-          {error}
-        </p>
-      ) : null}
-      <label htmlFor="photo-code" className="mt-6 block text-left text-sm font-medium">
-        Foto-Code
-      </label>
-      <input
-        id="photo-code"
-        type="text"
-        autoComplete="off"
-        autoCapitalize="none"
-        autoCorrect="off"
-        spellCheck={false}
-        value={code}
-        onChange={(event) => setCode(event.target.value)}
-        className={fieldClass}
-      />
-      <button
-        type="submit"
-        disabled={pending}
-        className="mt-6 bg-wine px-5 py-3 text-paper hover:bg-wine-deep disabled:opacity-60"
-      >
-        {pending ? "Wird geprüft…" : "Weiter"}
-      </button>
-    </form>
-  );
-}
-
-function UploadForm() {
+export function PhotoUpload() {
   const [name, setName] = useState("");
   const [caption, setCaption] = useState("");
   const [fax, setFax] = useState("");
@@ -112,9 +35,9 @@ function UploadForm() {
             setFiles([]);
             setError("");
           }}
-          className="mt-8 border border-wine px-5 py-3 text-wine hover:bg-wine hover:text-paper"
+          className="mt-8 rounded-xl border border-wine px-5 py-3 text-wine hover:bg-wine hover:text-paper"
         >
-          Weitere Bilder schicken
+          Weitere Bilder teilen
         </button>
       </div>
     );
@@ -176,7 +99,7 @@ function UploadForm() {
     <>
     <form onSubmit={onSubmit} noValidate className="space-y-6">
       <div className="text-center">
-        <h1 className="font-serif text-4xl text-bronze sm:text-5xl">Fotos schicken</h1>
+        <h1 className="font-serif text-4xl text-bronze sm:text-5xl">Fotos teilen</h1>
         <p className="mx-auto mt-4 max-w-md text-ink-soft">
           Wir schauen die Bilder an, bevor sie auf der Seite erscheinen.
         </p>
@@ -244,7 +167,7 @@ function UploadForm() {
           accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
           multiple
           onChange={(event) => setFiles(Array.from(event.target.files ?? []))}
-          className="mt-2 block w-full text-sm text-ink-soft file:mr-3 file:border file:border-wine file:bg-paper file:px-3 file:py-2 file:text-wine"
+          className="mt-2 block w-full text-sm text-ink-soft file:mr-3 file:rounded-xl file:border file:border-wine file:bg-paper file:px-3 file:py-2 file:text-wine"
         />
         {files.length > 0 ? (
           <ul className="mt-2 text-sm text-ink-soft">
@@ -258,7 +181,7 @@ function UploadForm() {
       <button
         type="submit"
         disabled={pending}
-        className="w-full bg-wine px-5 py-3 text-paper hover:bg-wine-deep disabled:opacity-60 sm:w-auto"
+        className="w-full rounded-xl bg-wine px-5 py-3 text-paper hover:bg-wine-deep disabled:opacity-60 sm:w-auto"
       >
         {pending ? "Wird gesendet…" : "Bilder senden"}
       </button>
@@ -317,14 +240,14 @@ function ApprovalNote({
           Die hochgeladenen Bilder sind in der Kategorie „Bilder“ erst zu sehen, nachdem wir sie freigegeben haben.
         </p>
         <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          <button type="button" onClick={onCancel} className="border border-line px-5 py-3 text-ink hover:border-wine">
+          <button type="button" onClick={onCancel} className="rounded-xl border border-line px-5 py-3 text-ink hover:border-wine">
             Zurück
           </button>
           <button
             type="button"
             data-confirm
             onClick={onConfirm}
-            className="bg-wine px-5 py-3 text-paper hover:bg-wine-deep"
+            className="rounded-xl bg-wine px-5 py-3 text-paper hover:bg-wine-deep"
           >
             Jetzt senden
           </button>

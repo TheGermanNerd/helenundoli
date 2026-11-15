@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAuthenticated } from "@/lib/auth";
-import { removePhoto, setGalleryEnabled, setPhotoStatus } from "@/lib/photos";
+import { removePhoto, setGalleryEnabled, setPhotoStatus, setUploadButtonEnabled } from "@/lib/photos";
 
 const noStore = { "Cache-Control": "no-store" };
 
@@ -23,12 +23,12 @@ export async function POST(request: Request) {
       ? body.action
       : "";
 
-  if (action === "setEnabled") {
+  if (action === "setEnabled" || action === "setUploadButton") {
     const enabled = typeof body === "object" && body !== null && "enabled" in body ? body.enabled : undefined;
     if (typeof enabled !== "boolean") {
       return NextResponse.json({ error: "Diese Aktion gibt es nicht." }, { status: 400, headers: noStore });
     }
-    const result = setGalleryEnabled(enabled);
+    const result = action === "setEnabled" ? setGalleryEnabled(enabled) : setUploadButtonEnabled(enabled);
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: 400, headers: noStore });
     }

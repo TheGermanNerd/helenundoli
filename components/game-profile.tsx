@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { parseName } from "@/lib/game-input";
 
-const fieldClass = "mt-2 w-full border border-line bg-cream px-3 py-2.5 text-ink";
+const fieldClass = "mt-2 w-full rounded-xl border border-line bg-cream px-3 py-2.5 text-ink";
 
 export function GameProfile({ name }: { name: string | null }) {
   const router = useRouter();
@@ -78,7 +78,7 @@ export function GameProfile({ name }: { name: string | null }) {
         </p>
       ) : null}
       <div className="mt-4 flex flex-wrap gap-3">
-        <button type="submit" disabled={pending} className="bg-wine px-4 py-2.5 text-sm text-paper hover:bg-wine-deep disabled:opacity-60">
+        <button type="submit" disabled={pending} className="rounded-xl bg-wine px-4 py-2.5 text-sm text-paper hover:bg-wine-deep disabled:opacity-60">
           {pending ? "Wird gespeichert…" : name ? "Namen speichern" : "Mitspielen"}
         </button>
         {name ? (

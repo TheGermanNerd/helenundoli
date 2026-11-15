@@ -45,7 +45,8 @@ function MealField({
 }
 
 export function RsvpForm() {
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [attending, setAttending] = useState<boolean | null>(null);
   const [guestCount, setGuestCount] = useState("1");
@@ -56,13 +57,14 @@ export function RsvpForm() {
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const [done, setDone] = useState<"yes" | "no" | null>(null);
+  const displayName = [firstName.trim(), lastName.trim()].filter(Boolean).join(" ");
 
   if (done) {
     return (
       <p className="text-center font-serif text-3xl leading-snug text-bronze" role="status">
         {done === "yes"
-          ? `Danke, ${name}. Wir haben eure Zusage erhalten und freuen uns auf euch.`
-          : `Danke, ${name}. Schade, dass es diesmal nicht klappt. Wir denken an euch.`}
+          ? `Danke, ${displayName}. Wir haben eure Zusage erhalten und freuen uns auf euch.`
+          : `Danke, ${displayName}. Schade, dass es diesmal nicht klappt. Wir denken an euch.`}
       </p>
     );
   }
@@ -75,13 +77,14 @@ export function RsvpForm() {
     const guests =
       attending && count
         ? [
-            { firstName: name, lastName: "", meal },
+            { firstName, lastName, meal },
             ...Array.from({ length: count - 1 }, (_, index) => companions[index] ?? emptyGuest()),
           ]
         : [];
 
     const payload = {
-      name,
+      firstName,
+      lastName,
       email,
       attending,
       guestCount: attending ? Number(guestCount) : 0,
@@ -117,7 +120,6 @@ export function RsvpForm() {
 
   const count = partySize(guestCount);
   const several = count !== null && count > 1;
-  const contactName = name.trim();
 
   function onGuestCountChange(value: string) {
     setGuestCount(value);
@@ -155,23 +157,38 @@ export function RsvpForm() {
         />
       </div>
 
-      <div>
-        <label htmlFor="name" className="text-sm font-medium">
-          Name *
-        </label>
-        <input
-          id="name"
-          name="name"
-          autoComplete="name"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          className={fieldClass}
-        />
+      <div className="grid gap-5 sm:grid-cols-2">
+        <div>
+          <label htmlFor="first-name" className="text-sm font-medium">
+            Vorname *
+          </label>
+          <input
+            id="first-name"
+            name="firstName"
+            autoComplete="given-name"
+            value={firstName}
+            onChange={(event) => setFirstName(event.target.value)}
+            className={fieldClass}
+          />
+        </div>
+        <div>
+          <label htmlFor="last-name" className="text-sm font-medium">
+            Nachname
+          </label>
+          <input
+            id="last-name"
+            name="lastName"
+            autoComplete="family-name"
+            value={lastName}
+            onChange={(event) => setLastName(event.target.value)}
+            className={fieldClass}
+          />
+        </div>
       </div>
 
       <div>
         <label htmlFor="email" className="text-sm font-medium">
-          E-Mail *
+          E-Mail
         </label>
         <input
           id="email"
@@ -182,6 +199,7 @@ export function RsvpForm() {
           onChange={(event) => setEmail(event.target.value)}
           className={fieldClass}
         />
+        <p className="mt-1 text-sm text-ink-soft">Freiwillig.</p>
       </div>
 
       <fieldset>
@@ -236,7 +254,7 @@ export function RsvpForm() {
               </label>
               <MealField id="meal" value={meal} onChange={setMeal} />
               {several ? (
-                <p className="mt-1 text-sm text-ink-soft">{contactName ? `Für ${contactName}.` : "Für den Namen oben."}</p>
+                <p className="mt-1 text-sm text-ink-soft">{displayName ? `Für ${displayName}.` : "Für den Vornamen oben."}</p>
               ) : null}
             </div>
           </div>

@@ -17,7 +17,7 @@ export function LogoutButton() {
         router.refresh();
         setPending(false);
       }}
-      className="border border-wine px-4 py-2 text-sm text-wine hover:bg-wine hover:text-paper disabled:opacity-60"
+      className="rounded-xl border border-wine px-4 py-2 text-sm text-wine hover:bg-wine hover:text-paper disabled:opacity-60"
     >
       {pending ? "Wird abgemeldet…" : "Abmelden"}
     </button>

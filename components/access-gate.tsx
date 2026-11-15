@@ -64,12 +64,12 @@ export function AccessGate() {
               spellCheck={false}
               value={code}
               onChange={(event) => setCode(event.target.value)}
-              className="mt-2 w-full border border-line bg-cream px-3 py-2.5"
+              className="mt-2 w-full rounded-xl border border-line bg-cream px-3 py-2.5"
             />
             <button
               type="submit"
               disabled={pending}
-              className="mt-6 w-full bg-wine px-5 py-3 text-paper hover:bg-wine-deep disabled:opacity-60"
+              className="mt-6 w-full rounded-xl bg-wine px-5 py-3 text-paper hover:bg-wine-deep disabled:opacity-60"
             >
               {pending ? "Wird geprüft…" : "Einladung öffnen"}
             </button>

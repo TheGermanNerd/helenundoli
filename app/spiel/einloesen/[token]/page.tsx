@@ -69,7 +69,7 @@ function UnknownCode() {
     <div className="text-center">
       <h1 className="font-serif text-4xl text-bronze">Unbekannter Code</h1>
       <p className="mt-4 text-ink-soft">Diesen Code kennen wir nicht.</p>
-      <Link href="/spiel" className="mt-6 inline-block bg-wine px-4 py-3 text-paper hover:bg-wine-deep">
+      <Link href="/spiel" className="mt-6 inline-block rounded-xl bg-wine px-4 py-3 text-paper hover:bg-wine-deep">
         Zum Spiel
       </Link>
     </div>
@@ -81,7 +81,7 @@ function AlreadyDone() {
     <div className="mt-6 text-center">
       <p className="font-serif text-3xl text-bronze">Die Aufgabe hast du schon.</p>
       <p className="mt-3 text-ink-soft">Sie zählt nur einmal.</p>
-      <Link href="/spiel" className="mt-6 inline-block bg-wine px-4 py-3 text-paper hover:bg-wine-deep">
+      <Link href="/spiel" className="mt-6 inline-block rounded-xl bg-wine px-4 py-3 text-paper hover:bg-wine-deep">
         Zum Spiel
       </Link>
     </div>

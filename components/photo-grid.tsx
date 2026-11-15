@@ -101,7 +101,7 @@ export function PhotoGrid({ photos }: { photos: GalleryPhoto[] }) {
           <button
             type="button"
             onClick={() => setActive(null)}
-            className="absolute top-4 right-4 z-20 border border-paper/50 px-3 py-2 text-sm text-paper hover:bg-paper hover:text-bronze"
+            className="absolute top-4 right-4 z-20 rounded-xl border border-paper/50 px-3 py-2 text-sm text-paper hover:bg-paper hover:text-bronze"
           >
             Schließen
           </button>
@@ -111,7 +111,7 @@ export function PhotoGrid({ photos }: { photos: GalleryPhoto[] }) {
                 type="button"
                 onClick={() => step(-1)}
                 aria-label="Vorheriges Bild"
-                className="absolute top-1/2 left-3 z-20 -translate-y-1/2 border border-paper/50 px-3 py-2 text-paper hover:bg-paper hover:text-bronze sm:left-6"
+                className="absolute top-1/2 left-3 z-20 -translate-y-1/2 rounded-xl border border-paper/50 px-3 py-2 text-paper hover:bg-paper hover:text-bronze sm:left-6"
               >
                 ‹
               </button>
@@ -119,7 +119,7 @@ export function PhotoGrid({ photos }: { photos: GalleryPhoto[] }) {
                 type="button"
                 onClick={() => step(1)}
                 aria-label="Nächstes Bild"
-                className="absolute top-1/2 right-3 z-20 -translate-y-1/2 border border-paper/50 px-3 py-2 text-paper hover:bg-paper hover:text-bronze sm:right-6"
+                className="absolute top-1/2 right-3 z-20 -translate-y-1/2 rounded-xl border border-paper/50 px-3 py-2 text-paper hover:bg-paper hover:text-bronze sm:right-6"
               >
                 ›
               </button>

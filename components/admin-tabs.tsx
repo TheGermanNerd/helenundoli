@@ -8,21 +8,26 @@ export function AdminTabs({
   rsvp,
   photos,
   game,
+  settings,
 }: {
   pending: number;
   rsvp: React.ReactNode;
   photos: React.ReactNode;
   game: React.ReactNode;
+  settings: React.ReactNode;
 }) {
-  const [tab, setTab] = useState<"rsvp" | "photos" | "game">("rsvp");
+  const [tab, setTab] = useState<"rsvp" | "photos" | "game" | "settings">("rsvp");
   const photosLabel = pending > 0 ? `Bilder (${pending})` : "Bilder";
-  const title = tab === "rsvp" ? "Antworten" : tab === "photos" ? "Bilder" : "Spiel";
+  const title =
+    tab === "rsvp" ? "Antworten" : tab === "photos" ? "Bilder" : tab === "game" ? "Spiel" : "Einstellungen";
   const description =
     tab === "rsvp"
-      ? "Mehrere Antworten derselben Person bleiben alle stehen."
+      ? "Mehrere Antworten derselben Person bleiben alle stehen. Einzelne Gäste könnt ihr nachträglich absagen."
       : tab === "photos"
         ? "Freigegebene Bilder erscheinen auf der Bilder-Seite."
-        : "Bis zu fünf Aufgaben. Punkte gibt es nur über den QR-Code der Aufgabe.";
+        : tab === "game"
+          ? "Bis zu fünf Aufgaben. Punkte gibt es nur über den QR-Code der Aufgabe."
+          : "Bilder, der Foto-Button und das Spiel sind für Gäste nur sichtbar, solange sie eingeschaltet sind.";
 
   return (
     <div>
@@ -33,7 +38,7 @@ export function AdminTabs({
         </div>
         <div className="flex flex-wrap gap-3">
           {tab === "rsvp" ? (
-            <a href="/api/admin/export" className="border border-wine px-4 py-2 text-sm text-wine hover:bg-wine hover:text-paper">
+            <a href="/api/admin/export" className="rounded-xl border border-wine px-4 py-2 text-sm text-wine hover:bg-wine hover:text-paper">
               Als CSV speichern
             </a>
           ) : null}
@@ -41,12 +46,13 @@ export function AdminTabs({
         </div>
       </div>
 
-      <div className="mt-6 flex gap-2 print:hidden" role="tablist" aria-label="Bereiche">
+      <div className="mt-6 flex flex-wrap gap-2 print:hidden" role="tablist" aria-label="Bereiche">
         {(
           [
             ["rsvp", "Antworten"],
             ["photos", photosLabel],
             ["game", "Spiel"],
+            ["settings", "Einstellungen"],
           ] as const
         ).map(([value, label]) => {
           const selected = tab === value;
@@ -57,7 +63,7 @@ export function AdminTabs({
               role="tab"
               aria-selected={selected}
               onClick={() => setTab(value)}
-              className={`border px-4 py-2 text-sm ${
+              className={`rounded-xl border px-4 py-2 text-sm ${
                 selected ? "border-wine bg-wine text-paper" : "border-line bg-paper text-ink hover:border-wine"
               }`}
             >
@@ -67,7 +73,9 @@ export function AdminTabs({
         })}
       </div>
 
-      <div className="mt-8">{tab === "rsvp" ? rsvp : tab === "photos" ? photos : game}</div>
+      <div className="mt-8">
+        {tab === "rsvp" ? rsvp : tab === "photos" ? photos : tab === "game" ? game : settings}
+      </div>
     </div>
   );
 }

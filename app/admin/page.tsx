@@ -5,7 +5,8 @@ import { headers } from "next/headers";
 import { connection } from "next/server";
 import { isAuthenticated } from "@/lib/auth";
 import { listRsvps, summarize } from "@/lib/db";
-import { galleryEnabled, listPhotos } from "@/lib/photos";
+import { getSettings } from "@/lib/game";
+import { galleryEnabled, listPhotos, uploadButtonEnabled } from "@/lib/photos";
 import { AdminGame } from "@/components/admin-game";
 import { AdminLogin } from "@/components/admin-login";
 import { AdminDashboard } from "@/components/admin-dashboard";
@@ -43,6 +44,8 @@ async function AdminContent() {
         stats={summarize()}
         photos={listPhotos()}
         galleryEnabled={galleryEnabled()}
+        uploadButtonEnabled={uploadButtonEnabled()}
+        gameEnabled={getSettings().enabled}
         game={<AdminGame origin={requestOrigin(headerList)} />}
       />
     </AdminFrame>

@@ -92,17 +92,35 @@ export async function storePhoto(input: Buffer) {
   return filename;
 }
 
-export function galleryEnabled() {
-  const row = getDb().prepare("SELECT enabled FROM gallery_settings WHERE id = 1").get() as
-    | { enabled: number }
+type GallerySettingsRow = { enabled: number; button_enabled: number };
+
+function gallerySettings() {
+  return getDb().prepare("SELECT enabled, button_enabled FROM gallery_settings WHERE id = 1").get() as
+    | GallerySettingsRow
     | undefined;
+}
+
+export function galleryEnabled() {
+  const row = gallerySettings();
   if (!row) return true;
   return row.enabled === 1;
+}
+
+export function uploadButtonEnabled() {
+  const row = gallerySettings();
+  if (!row) return true;
+  return row.button_enabled === 1;
 }
 
 export function setGalleryEnabled(enabled: boolean): { ok: true } | { ok: false; error: string } {
   const info = getDb().prepare("UPDATE gallery_settings SET enabled = ? WHERE id = 1").run(enabled ? 1 : 0);
   if (info.changes === 0) return { ok: false, error: "Die Bilder konnten nicht umgestellt werden." };
+  return { ok: true };
+}
+
+export function setUploadButtonEnabled(enabled: boolean): { ok: true } | { ok: false; error: string } {
+  const info = getDb().prepare("UPDATE gallery_settings SET button_enabled = ? WHERE id = 1").run(enabled ? 1 : 0);
+  if (info.changes === 0) return { ok: false, error: "Der Button konnte nicht umgestellt werden." };
   return { ok: true };
 }
 

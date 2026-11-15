@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { parseName, pointsLabel } from "@/lib/game-input";
 
-const fieldClass = "mt-2 w-full border border-line bg-cream px-3 py-2.5 text-ink";
+const fieldClass = "mt-2 w-full rounded-xl border border-line bg-cream px-3 py-2.5 text-ink";
 
 export function ClaimForm({ token, playerName }: { token: string; playerName: string | null }) {
   const lock = useRef(false);
@@ -67,7 +67,7 @@ export function ClaimForm({ token, playerName }: { token: string; playerName: st
             ? "Sie zählt nur einmal."
             : `Das sind ${pointsLabel(done.points)}. Du hast jetzt ${pointsLabel(done.score)}.`}
         </p>
-        <Link href="/spiel" className="mt-6 inline-block bg-wine px-4 py-3 text-paper hover:bg-wine-deep">
+        <Link href="/spiel" className="mt-6 inline-block rounded-xl bg-wine px-4 py-3 text-paper hover:bg-wine-deep">
           Zum Spiel
         </Link>
       </div>
@@ -102,7 +102,7 @@ export function ClaimForm({ token, playerName }: { token: string; playerName: st
       <button
         type="submit"
         disabled={pending}
-        className="mt-5 w-full bg-wine px-4 py-3 text-paper hover:bg-wine-deep disabled:opacity-60"
+        className="mt-5 w-full rounded-xl bg-wine px-4 py-3 text-paper hover:bg-wine-deep disabled:opacity-60"
       >
         {pending ? "Wird gespeichert…" : "Punkte holen"}
       </button>

@@ -54,7 +54,7 @@ if [[ ! -d "$APP_DIR/.git" ]]; then
 fi
 
 if [[ ! -f "$ENV_FILE" ]]; then
-  echo "Choose the three codes from .env.example. They are stored only in $ENV_FILE."
+  echo "Choose the two codes from .env.example. They are stored only in $ENV_FILE."
   read_secret() {
     local prompt="$1"
     local value=""
@@ -71,9 +71,8 @@ if [[ ! -f "$ENV_FILE" ]]; then
   }
 
   ADMIN_PASSWORD="$(read_secret "Admin password: ")"
-  PHOTO_CODE="$(read_secret "Photo code: ")"
   SITE_ACCESS_CODE="$(read_secret "Site access code: ")"
-  export ADMIN_PASSWORD PHOTO_CODE SITE_ACCESS_CODE
+  export ADMIN_PASSWORD SITE_ACCESS_CODE
   python3 - "$ENV_FILE" << 'PY'
 import os
 import sys
@@ -91,13 +90,13 @@ def encode(value: str) -> str:
         return "'" + escaped + "'"
     raise SystemExit("A value contains both ' and \". Choose a different one.")
 
-keys = ("ADMIN_PASSWORD", "PHOTO_CODE", "SITE_ACCESS_CODE")
+keys = ("ADMIN_PASSWORD", "SITE_ACCESS_CODE")
 lines = [f"{key}={encode(os.environ[key])}" for key in keys]
 with open(path, "w", encoding="utf-8") as handle:
     handle.write("\n".join(lines) + "\n")
 os.chmod(path, 0o600)
 PY
-  unset ADMIN_PASSWORD PHOTO_CODE SITE_ACCESS_CODE
+  unset ADMIN_PASSWORD SITE_ACCESS_CODE
   chown "$APP_USER:$APP_USER" "$ENV_FILE"
 else
   echo "Keeping the existing $ENV_FILE"
