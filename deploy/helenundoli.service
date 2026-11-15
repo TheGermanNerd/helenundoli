@@ -1,0 +1,17 @@
+[Unit]
+Description=Helen und Oli website
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=helenundoli
+Group=helenundoli
+WorkingDirectory=/var/www/helenundoli
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node /var/www/helenundoli/node_modules/next/dist/bin/next start -H 127.0.0.1 -p 3000
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

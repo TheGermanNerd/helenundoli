@@ -107,27 +107,10 @@ install -d -o "$APP_USER" -g "$APP_USER" "$APP_DIR/data" "$APP_DIR/data/photos"
 runuser -u "$APP_USER" -- env HOME="$NPM_HOME" npm_config_cache="$NPM_HOME" \
   bash -c "cd '$APP_DIR' && npm ci && npm run build"
 
-cat > /etc/systemd/system/helenundoli.service << EOF
-[Unit]
-Description=Helen und Oli website
-After=network.target
-
-[Service]
-Type=simple
-User=$APP_USER
-Group=$APP_USER
-WorkingDirectory=$APP_DIR
-Environment=NODE_ENV=production
-ExecStart=/usr/bin/node $APP_DIR/node_modules/next/dist/bin/next start -H 127.0.0.1 -p 3000
-Restart=on-failure
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
+install -m 644 "$APP_DIR/deploy/helenundoli.service" /etc/systemd/system/helenundoli.service
 systemctl daemon-reload
 systemctl enable helenundoli
+systemctl enable nginx
 systemctl restart helenundoli
 if ! systemctl is-active --quiet helenundoli; then
   journalctl -u helenundoli -n 40 --no-pager || true

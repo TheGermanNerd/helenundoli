@@ -23,11 +23,17 @@ runuser -u "$APP_USER" -- env HOME="$NPM_HOME" git -C "$APP_DIR" pull --ff-only
 runuser -u "$APP_USER" -- env HOME="$NPM_HOME" npm_config_cache="$NPM_HOME" \
   bash -c "cd '$APP_DIR' && npm ci && npm run build"
 
+install -m 644 "$APP_DIR/deploy/helenundoli.service" /etc/systemd/system/helenundoli.service
+systemctl daemon-reload
+systemctl enable helenundoli
+systemctl enable nginx
 systemctl restart helenundoli
-if ! systemctl is-active --quiet helenundoli; then
+systemctl restart nginx
+if ! systemctl is-active --quiet helenundoli || ! systemctl is-active --quiet nginx; then
   journalctl -u helenundoli -n 40 --no-pager || true
   echo "The site did not stay running after the update." >&2
   exit 1
 fi
 
-echo "Updated. $APP_DIR/.env.local and $APP_DIR/data were left unchanged."
+echo "Updated. helenundoli and nginx will start automatically after a reboot."
+echo "$APP_DIR/.env.local and $APP_DIR/data were left unchanged."
