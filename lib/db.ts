@@ -21,7 +21,7 @@ const globalForDb = globalThis as unknown as {
   __schemaVersion?: number;
 };
 
-const SCHEMA_VERSION = 7;
+const SCHEMA_VERSION = 9;
 
 function ensureSchema(database: Database.Database) {
   database.exec(`
@@ -75,7 +75,12 @@ function ensureSchema(database: Database.Database) {
     CREATE TABLE IF NOT EXISTS gallery_settings (
       id INTEGER PRIMARY KEY CHECK (id = 1),
       enabled INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0, 1)),
-      button_enabled INTEGER NOT NULL DEFAULT 1 CHECK (button_enabled IN (0, 1))
+      button_enabled INTEGER NOT NULL DEFAULT 1 CHECK (button_enabled IN (0, 1)),
+      auto_approve INTEGER NOT NULL DEFAULT 0 CHECK (auto_approve IN (0, 1)),
+      enable_at TEXT,
+      disable_at TEXT,
+      button_enable_at TEXT,
+      button_disable_at TEXT
     );
   `);
   const columns = database.prepare("PRAGMA table_info(game_settings)").all() as { name: string }[];
@@ -88,6 +93,16 @@ function ensureSchema(database: Database.Database) {
   if (!galleryColumns.some((column) => column.name === "button_enabled")) {
     database.exec(
       "ALTER TABLE gallery_settings ADD COLUMN button_enabled INTEGER NOT NULL DEFAULT 1 CHECK (button_enabled IN (0, 1))",
+    );
+  }
+  for (const column of ["enable_at", "disable_at", "button_enable_at", "button_disable_at"]) {
+    if (!galleryColumns.some((entry) => entry.name === column)) {
+      database.exec(`ALTER TABLE gallery_settings ADD COLUMN ${column} TEXT`);
+    }
+  }
+  if (!galleryColumns.some((column) => column.name === "auto_approve")) {
+    database.exec(
+      "ALTER TABLE gallery_settings ADD COLUMN auto_approve INTEGER NOT NULL DEFAULT 0 CHECK (auto_approve IN (0, 1))",
     );
   }
   const rsvpColumns = database.prepare("PRAGMA table_info(rsvps)").all() as { name: string }[];

@@ -21,13 +21,66 @@ const groups = [
   { status: "rejected", title: "Abgelehnt" },
 ] as const;
 
+function AutoApprove({ autoApprove }: { autoApprove: boolean }) {
+  const router = useRouter();
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+
+  async function toggle(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setPending(true);
+    setError("");
+    try {
+      const response = await fetch("/api/admin/photos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "setAutoApprove", enabled: !autoApprove }),
+      });
+      const data = (await response.json().catch(() => null)) as { error?: string } | null;
+      if (!response.ok) {
+        setError(data?.error ?? "Das hat nicht geklappt.");
+        return;
+      }
+      router.refresh();
+    } catch {
+      setError("Die Verbindung hat nicht geklappt. Bitte versucht es noch einmal.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <form onSubmit={toggle} className="border border-line bg-paper px-4 py-4">
+      <h2 className="font-serif text-3xl text-bronze">Automatisch freigeben</h2>
+      <p className="mt-2 text-sm text-ink-soft">
+        Neue Bilder erscheinen sofort auf der Bilder-Seite. Bilder, die schon auf Freigabe warten, bleiben liegen.
+      </p>
+      <p className="mt-3 text-sm">
+        {autoApprove ? "Neue Bilder werden automatisch freigegeben." : "Neue Bilder warten auf Freigabe."}
+      </p>
+      {error ? (
+        <p role="alert" className="mt-3 border border-wine/30 bg-wine/5 px-3 py-2 text-wine">
+          {error}
+        </p>
+      ) : null}
+      <button
+        type="submit"
+        disabled={pending}
+        className="mt-4 rounded-xl bg-wine px-4 py-2 text-sm text-paper hover:bg-wine-deep disabled:opacity-60"
+      >
+        {pending ? "Wird gespeichert…" : autoApprove ? "Wieder manuell freigeben" : "Automatisch freigeben"}
+      </button>
+    </form>
+  );
+}
+
 const statusLabel: Record<PhotoStatus, string> = {
   pending: "Wartet",
   approved: "Auf der Seite",
   rejected: "Abgelehnt",
 };
 
-export function AdminPhotos({ photos }: { photos: AdminPhoto[] }) {
+export function AdminPhotos({ photos, autoApprove }: { photos: AdminPhoto[]; autoApprove: boolean }) {
   const router = useRouter();
   const [busy, setBusy] = useState<number | null>(null);
   const [error, setError] = useState("");
@@ -81,6 +134,7 @@ export function AdminPhotos({ photos }: { photos: AdminPhoto[] }) {
 
   return (
     <div className="space-y-10">
+      <AutoApprove autoApprove={autoApprove} />
       {error ? (
         <p role="alert" className="border border-wine/30 bg-wine/5 px-3 py-2 text-wine">
           {error}

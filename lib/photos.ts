@@ -92,47 +92,180 @@ export async function storePhoto(input: Buffer) {
   return filename;
 }
 
-type GallerySettingsRow = { enabled: number; button_enabled: number };
+type GallerySettingsRow = {
+  enabled: number;
+  button_enabled: number;
+  auto_approve: number;
+  enable_at: string | null;
+  disable_at: string | null;
+  button_enable_at: string | null;
+  button_disable_at: string | null;
+};
+
+export type VisibilitySwitch = {
+  enabled: boolean;
+  enableAt: string | null;
+  disableAt: string | null;
+};
+
+export function resolveSwitch(
+  enabled: boolean,
+  enableAt: string | null,
+  disableAt: string | null,
+  now: number,
+) {
+  const events: { at: number; enabled: boolean; which: "on" | "off" }[] = [];
+  const onAt = enableAt ? Date.parse(enableAt) : Number.NaN;
+  const offAt = disableAt ? Date.parse(disableAt) : Number.NaN;
+  if (enableAt && !Number.isNaN(onAt) && onAt <= now) events.push({ at: onAt, enabled: true, which: "on" });
+  if (disableAt && !Number.isNaN(offAt) && offAt <= now) events.push({ at: offAt, enabled: false, which: "off" });
+  if (events.length === 0) return { enabled, enableAt, disableAt, changed: false };
+
+  events.sort((left, right) => left.at - right.at);
+  const last = events[events.length - 1];
+  return {
+    enabled: last.enabled,
+    enableAt: events.some((event) => event.which === "on") ? null : enableAt,
+    disableAt: events.some((event) => event.which === "off") ? null : disableAt,
+    changed: true,
+  };
+}
 
 function gallerySettings() {
-  return getDb().prepare("SELECT enabled, button_enabled FROM gallery_settings WHERE id = 1").get() as
-    | GallerySettingsRow
-    | undefined;
+  const row = getDb()
+    .prepare(
+      `SELECT enabled, button_enabled, auto_approve, enable_at, disable_at, button_enable_at, button_disable_at
+       FROM gallery_settings WHERE id = 1`,
+    )
+    .get() as GallerySettingsRow | undefined;
+  if (!row) return undefined;
+  return applyDueSchedules(row);
+}
+
+function applyDueSchedules(row: GallerySettingsRow) {
+  const now = Date.now();
+  const gallery = resolveSwitch(row.enabled === 1, row.enable_at, row.disable_at, now);
+  const button = resolveSwitch(row.button_enabled === 1, row.button_enable_at, row.button_disable_at, now);
+  if (!gallery.changed && !button.changed) return row;
+
+  const next: GallerySettingsRow = {
+    enabled: gallery.enabled ? 1 : 0,
+    button_enabled: button.enabled ? 1 : 0,
+    auto_approve: row.auto_approve,
+    enable_at: gallery.enableAt,
+    disable_at: gallery.disableAt,
+    button_enable_at: button.enableAt,
+    button_disable_at: button.disableAt,
+  };
+  getDb()
+    .prepare(
+      `UPDATE gallery_settings
+       SET enabled = @enabled, button_enabled = @button_enabled,
+           enable_at = @enable_at, disable_at = @disable_at,
+           button_enable_at = @button_enable_at, button_disable_at = @button_disable_at
+       WHERE id = 1`,
+    )
+    .run(next);
+  return next;
+}
+
+export function gallerySwitches(): { gallery: VisibilitySwitch; button: VisibilitySwitch } {
+  const row = gallerySettings();
+  if (!row) {
+    return {
+      gallery: { enabled: true, enableAt: null, disableAt: null },
+      button: { enabled: true, enableAt: null, disableAt: null },
+    };
+  }
+  return {
+    gallery: { enabled: row.enabled === 1, enableAt: row.enable_at, disableAt: row.disable_at },
+    button: {
+      enabled: row.button_enabled === 1,
+      enableAt: row.button_enable_at,
+      disableAt: row.button_disable_at,
+    },
+  };
 }
 
 export function galleryEnabled() {
-  const row = gallerySettings();
-  if (!row) return true;
-  return row.enabled === 1;
+  return gallerySwitches().gallery.enabled;
 }
 
 export function uploadButtonEnabled() {
-  const row = gallerySettings();
-  if (!row) return true;
-  return row.button_enabled === 1;
+  return gallerySwitches().button.enabled;
 }
 
 export function setGalleryEnabled(enabled: boolean): { ok: true } | { ok: false; error: string } {
-  const info = getDb().prepare("UPDATE gallery_settings SET enabled = ? WHERE id = 1").run(enabled ? 1 : 0);
+  gallerySettings();
+  const info = getDb()
+    .prepare(
+      enabled
+        ? "UPDATE gallery_settings SET enabled = 1, enable_at = NULL WHERE id = 1"
+        : "UPDATE gallery_settings SET enabled = 0, disable_at = NULL WHERE id = 1",
+    )
+    .run();
   if (info.changes === 0) return { ok: false, error: "Die Bilder konnten nicht umgestellt werden." };
   return { ok: true };
 }
 
 export function setUploadButtonEnabled(enabled: boolean): { ok: true } | { ok: false; error: string } {
-  const info = getDb().prepare("UPDATE gallery_settings SET button_enabled = ? WHERE id = 1").run(enabled ? 1 : 0);
+  gallerySettings();
+  const info = getDb()
+    .prepare(
+      enabled
+        ? "UPDATE gallery_settings SET button_enabled = 1, button_enable_at = NULL WHERE id = 1"
+        : "UPDATE gallery_settings SET button_enabled = 0, button_disable_at = NULL WHERE id = 1",
+    )
+    .run();
   if (info.changes === 0) return { ok: false, error: "Der Button konnte nicht umgestellt werden." };
   return { ok: true };
 }
 
+export function setGallerySchedule(
+  enableAt: string | null,
+  disableAt: string | null,
+): { ok: true } | { ok: false; error: string } {
+  const info = getDb()
+    .prepare("UPDATE gallery_settings SET enable_at = ?, disable_at = ? WHERE id = 1")
+    .run(enableAt, disableAt);
+  if (info.changes === 0) return { ok: false, error: "Der Zeitplan konnte nicht gespeichert werden." };
+  return { ok: true };
+}
+
+export function setButtonSchedule(
+  enableAt: string | null,
+  disableAt: string | null,
+): { ok: true } | { ok: false; error: string } {
+  const info = getDb()
+    .prepare("UPDATE gallery_settings SET button_enable_at = ?, button_disable_at = ? WHERE id = 1")
+    .run(enableAt, disableAt);
+  if (info.changes === 0) return { ok: false, error: "Der Zeitplan konnte nicht gespeichert werden." };
+  return { ok: true };
+}
+
+export function autoApproveEnabled() {
+  const row = gallerySettings();
+  if (!row) return false;
+  return row.auto_approve === 1;
+}
+
+export function setAutoApproveEnabled(enabled: boolean): { ok: true } | { ok: false; error: string } {
+  const info = getDb().prepare("UPDATE gallery_settings SET auto_approve = ? WHERE id = 1").run(enabled ? 1 : 0);
+  if (info.changes === 0) return { ok: false, error: "Die Freigabe konnte nicht umgestellt werden." };
+  return { ok: true };
+}
+
 export function insertPhoto(photo: { name: string; caption: string | null; filename: string }) {
+  const status = autoApproveEnabled() ? "approved" : "pending";
   getDb()
     .prepare(
       `INSERT INTO photos (name, caption, status, filename, created_at)
-       VALUES (@name, @caption, 'pending', @filename, @createdAt)`,
+       VALUES (@name, @caption, @status, @filename, @createdAt)`,
     )
     .run({
       name: photo.name,
       caption: photo.caption,
+      status,
       filename: photo.filename,
       createdAt: new Date().toISOString(),
     });

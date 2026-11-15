@@ -6,25 +6,35 @@ import { connection } from "next/server";
 import { isAuthenticated } from "@/lib/auth";
 import { listRsvps, summarize } from "@/lib/db";
 import { getSettings } from "@/lib/game";
-import { galleryEnabled, listPhotos, uploadButtonEnabled } from "@/lib/photos";
+import { autoApproveEnabled, gallerySwitches, listPhotos } from "@/lib/photos";
+import { serverUsage } from "@/lib/server-usage";
 import { AdminGame } from "@/components/admin-game";
 import { AdminLogin } from "@/components/admin-login";
 import { AdminDashboard } from "@/components/admin-dashboard";
+import { adminTab } from "@/lib/admin-tab";
 
 export const metadata: Metadata = {
   title: "Antworten · Helen & Oliver",
   robots: { index: false, follow: false },
 };
 
-export default function AdminPage() {
+export default function AdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ bereich?: string | string[] }>;
+}) {
   return (
     <Suspense fallback={<AdminFrame><p className="text-ink-soft">Die Übersicht wird geladen…</p></AdminFrame>}>
-      <AdminContent />
+      <AdminContent searchParams={searchParams} />
     </Suspense>
   );
 }
 
-async function AdminContent() {
+async function AdminContent({
+  searchParams,
+}: {
+  searchParams: Promise<{ bereich?: string | string[] }>;
+}) {
   const signedIn = await isAuthenticated();
   if (!signedIn) {
     return (
@@ -36,17 +46,27 @@ async function AdminContent() {
 
   await connection();
   const headerList = await headers();
+  const switches = gallerySwitches();
+  const bereich = (await searchParams).bereich;
+  const initialTab = adminTab(Array.isArray(bereich) ? bereich[0] : bereich);
 
   return (
     <AdminFrame>
       <AdminDashboard
+        initialTab={initialTab}
         rows={listRsvps()}
         stats={summarize()}
         photos={listPhotos()}
-        galleryEnabled={galleryEnabled()}
-        uploadButtonEnabled={uploadButtonEnabled()}
+        galleryEnabled={switches.gallery.enabled}
+        galleryEnableAt={switches.gallery.enableAt}
+        galleryDisableAt={switches.gallery.disableAt}
+        uploadButtonEnabled={switches.button.enabled}
+        uploadButtonEnableAt={switches.button.enableAt}
+        uploadButtonDisableAt={switches.button.disableAt}
+        autoApproveEnabled={autoApproveEnabled()}
         gameEnabled={getSettings().enabled}
         game={<AdminGame origin={requestOrigin(headerList)} />}
+        usage={serverUsage()}
       />
     </AdminFrame>
   );

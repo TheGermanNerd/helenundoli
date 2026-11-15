@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server";
 import { isAuthenticated } from "@/lib/auth";
-import { removePhoto, setGalleryEnabled, setPhotoStatus, setUploadButtonEnabled } from "@/lib/photos";
+import { parseBerlinDateTime } from "@/lib/format";
+import {
+  removePhoto,
+  setAutoApproveEnabled,
+  setButtonSchedule,
+  setGalleryEnabled,
+  setGallerySchedule,
+  setPhotoStatus,
+  setUploadButtonEnabled,
+} from "@/lib/photos";
 
 const noStore = { "Cache-Control": "no-store" };
 
@@ -23,12 +32,41 @@ export async function POST(request: Request) {
       ? body.action
       : "";
 
-  if (action === "setEnabled" || action === "setUploadButton") {
+  if (action === "setEnabled" || action === "setUploadButton" || action === "setAutoApprove") {
     const enabled = typeof body === "object" && body !== null && "enabled" in body ? body.enabled : undefined;
     if (typeof enabled !== "boolean") {
       return NextResponse.json({ error: "Diese Aktion gibt es nicht." }, { status: 400, headers: noStore });
     }
-    const result = action === "setEnabled" ? setGalleryEnabled(enabled) : setUploadButtonEnabled(enabled);
+    const result =
+      action === "setEnabled"
+        ? setGalleryEnabled(enabled)
+        : action === "setUploadButton"
+          ? setUploadButtonEnabled(enabled)
+          : setAutoApproveEnabled(enabled);
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: 400, headers: noStore });
+    }
+    return NextResponse.json({ ok: true }, { headers: noStore });
+  }
+
+  if (action === "setGallerySchedule" || action === "setButtonSchedule") {
+    if (typeof body !== "object" || body === null) {
+      return NextResponse.json({ error: "Diese Aktion gibt es nicht." }, { status: 400, headers: noStore });
+    }
+    const enableAt = optionalBerlinTime(body, "enableAt");
+    const disableAt = optionalBerlinTime(body, "disableAt");
+    if (!enableAt.ok) return NextResponse.json({ error: enableAt.error }, { status: 400, headers: noStore });
+    if (!disableAt.ok) return NextResponse.json({ error: disableAt.error }, { status: 400, headers: noStore });
+    if (enableAt.iso && disableAt.iso && enableAt.iso === disableAt.iso) {
+      return NextResponse.json(
+        { error: "Die beiden Uhrzeiten müssen unterschiedlich sein." },
+        { status: 400, headers: noStore },
+      );
+    }
+    const result =
+      action === "setGallerySchedule"
+        ? setGallerySchedule(enableAt.iso, disableAt.iso)
+        : setButtonSchedule(enableAt.iso, disableAt.iso);
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: 400, headers: noStore });
     }
@@ -56,4 +94,14 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({ ok: true }, { headers: noStore });
+}
+
+function optionalBerlinTime(body: object, key: string) {
+  if (!(key in body)) return { ok: false as const, error: "Diese Aktion gibt es nicht." };
+  const value = (body as Record<string, unknown>)[key];
+  if (value === null || value === "") return { ok: true as const, iso: null };
+  if (typeof value !== "string") return { ok: false as const, error: "Diese Uhrzeit konnten wir nicht lesen." };
+  const parsed = parseBerlinDateTime(value);
+  if (!parsed.ok) return parsed;
+  return { ok: true as const, iso: parsed.iso };
 }

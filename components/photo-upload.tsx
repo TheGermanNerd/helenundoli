@@ -5,7 +5,7 @@ import { MAX_PHOTO_BYTES, MAX_PHOTOS } from "@/lib/photo-limits";
 
 const fieldClass = "mt-2 w-full rounded-xl border border-line bg-cream px-3 py-2.5 text-ink";
 
-export function PhotoUpload() {
+export function PhotoUpload({ autoApprove = false }: { autoApprove?: boolean }) {
   const [name, setName] = useState("");
   const [caption, setCaption] = useState("");
   const [fax, setFax] = useState("");
@@ -19,8 +19,9 @@ export function PhotoUpload() {
     return (
       <div className="text-center" role="status">
         <p className="font-serif text-3xl leading-snug text-bronze">
-          Danke, {done.name}. Wir haben {done.saved === 1 ? "euer Bild" : `eure ${done.saved} Bilder`} erhalten und
-          schauen {done.saved === 1 ? "es" : "sie"} uns an.
+          {autoApprove
+            ? `Danke, ${done.name}. ${done.saved === 1 ? "Euer Bild ist" : `Eure ${done.saved} Bilder sind`} auf der Seite.`
+            : `Danke, ${done.name}. Wir haben ${done.saved === 1 ? "euer Bild" : `eure ${done.saved} Bilder`} erhalten und schauen ${done.saved === 1 ? "es" : "sie"} uns an.`}
         </p>
         {done.failed > 0 ? (
           <p className="mt-4 text-ink-soft">
@@ -101,7 +102,9 @@ export function PhotoUpload() {
       <div className="text-center">
         <h1 className="font-serif text-4xl text-bronze sm:text-5xl">Fotos teilen</h1>
         <p className="mx-auto mt-4 max-w-md text-ink-soft">
-          Wir schauen die Bilder an, bevor sie auf der Seite erscheinen.
+          {autoApprove
+            ? "Die Bilder erscheinen direkt auf der Bilder-Seite."
+            : "Wir schauen die Bilder an, bevor sie auf der Seite erscheinen."}
         </p>
       </div>
       <p className="text-sm text-ink-soft">Pflichtfelder sind mit * markiert. Bis zu 12 Bilder, höchstens 12 MB pro Bild.</p>
@@ -186,17 +189,24 @@ export function PhotoUpload() {
         {pending ? "Wird gesendet…" : "Bilder senden"}
       </button>
     </form>
-    <ApprovalNote open={confirming} onCancel={() => setConfirming(false)} onConfirm={upload} />
+    <ApprovalNote
+      open={confirming}
+      autoApprove={autoApprove}
+      onCancel={() => setConfirming(false)}
+      onConfirm={upload}
+    />
     </>
   );
 }
 
 function ApprovalNote({
   open,
+  autoApprove,
   onCancel,
   onConfirm,
 }: {
   open: boolean;
+  autoApprove: boolean;
   onCancel: () => void;
   onConfirm: () => void;
 }) {
@@ -234,10 +244,12 @@ function ApprovalNote({
     >
       <div className="bg-paper px-6 py-8 text-left text-ink sm:px-8">
         <h2 id="photo-approval-title" className="font-serif text-3xl text-bronze">
-          Noch nicht sichtbar
+          {autoApprove ? "Direkt auf der Seite" : "Noch nicht sichtbar"}
         </h2>
         <p id="photo-approval-note" className="mt-4 leading-relaxed text-ink-soft">
-          Die hochgeladenen Bilder sind in der Kategorie „Bilder“ erst zu sehen, nachdem wir sie freigegeben haben.
+          {autoApprove
+            ? "Die hochgeladenen Bilder sind danach in der Kategorie „Bilder“ zu sehen."
+            : "Die hochgeladenen Bilder sind in der Kategorie „Bilder“ erst zu sehen, nachdem wir sie freigegeben haben."}
         </p>
         <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <button type="button" onClick={onCancel} className="rounded-xl border border-line px-5 py-3 text-ink hover:border-wine">
