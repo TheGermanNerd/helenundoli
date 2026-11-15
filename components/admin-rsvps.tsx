@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { RsvpRow } from "@/lib/db";
-import { attendingMealLabel, managedGuests, type ManagedGuest, type MealOption } from "@/lib/rsvp";
+import { managedGuests, mealLabel, type MealOption } from "@/lib/rsvp";
 
 type AdminRow = RsvpRow & { received: string };
 
@@ -20,15 +20,6 @@ type SaveBody =
 
 function text(value: string | null) {
   return value && value.trim() ? value : "—";
-}
-
-function GuestNames({ guests }: { guests: ManagedGuest[] }) {
-  return guests.map((guest, index) => (
-    <span key={`${guest.name}-${index}`}>
-      {index > 0 ? ", " : null}
-      <span className={guest.attending ? undefined : "text-ink-soft line-through"}>{guest.name}</span>
-    </span>
-  ));
 }
 
 function matchesQuery(row: AdminRow, query: string) {
@@ -184,7 +175,7 @@ function GuestTable({
                 const declined = guests.length - coming;
                 const expandable = guests.length > 1;
                 const expanded = expandable && openIds.has(row.id);
-                const mealText = guests.length === 0 ? "—" : attendingMealLabel(guests, mealOptions);
+                const collapsed = expandable && !expanded;
                 return (
                   <tr key={row.id} className="border-b border-line align-top last:border-b-0">
                     <td className="px-1 py-2">
@@ -248,25 +239,27 @@ function GuestTable({
                         "—"
                       ) : (
                         <>
-                          {expandable && !expanded ? (
+                          {collapsed ? (
                             <p className="line-clamp-1 print:hidden">
-                              <GuestNames guests={guests} />
+                              <span className={guests[0].attending ? undefined : "text-ink-soft line-through"}>
+                                {guests[0].name}
+                              </span>
                             </p>
                           ) : null}
-                          <ul className={expandable && !expanded ? "hidden space-y-2 print:block" : "space-y-2"}>
+                          <ul className={collapsed ? "hidden print:block" : undefined}>
                             {guests.map((guest, index) => {
                               const key = `${row.id}:${index}`;
                               return (
-                                <li key={key} className="flex items-center justify-between gap-3">
-                                  <span className="flex flex-wrap items-baseline gap-2">
-                                    <span className={guest.attending ? "" : "text-ink-soft line-through"}>{guest.name}</span>
-                                    {guest.attending ? null : (
-                                      <span className="text-[0.65rem] font-medium tracking-[0.14em] text-olive uppercase">
-                                        abgesagt
-                                      </span>
-                                    )}
+                                <li key={key} className="flex h-9 items-center gap-2 border-b border-line/50 last:border-b-0">
+                                  <span className={`min-w-0 truncate ${guest.attending ? "" : "text-ink-soft line-through"}`}>
+                                    {guest.name}
                                   </span>
-                                  <span className={`flex shrink-0 items-center gap-2${expandable && !expanded ? " print:hidden" : ""}`}>
+                                  {guest.attending ? null : (
+                                    <span className="shrink-0 text-[0.65rem] font-medium tracking-[0.14em] text-olive uppercase">
+                                      abgesagt
+                                    </span>
+                                  )}
+                                  <span className="ml-auto flex shrink-0 items-center gap-2 print:hidden">
                                     <button
                                       type="button"
                                       disabled={busy !== null}
@@ -311,13 +304,30 @@ function GuestTable({
                         </>
                       )}
                     </td>
-                    <td className="px-3 py-3">
-                      {expandable && !expanded ? (
-                        <span className="line-clamp-1 print:hidden">{mealText.replaceAll("\n", " · ")}</span>
-                      ) : null}
-                      <span className={expandable && !expanded ? "hidden whitespace-pre-wrap print:block" : "whitespace-pre-wrap"}>
-                        {mealText}
-                      </span>
+                    <td className="px-3 py-3 whitespace-nowrap">
+                      {guests.length === 0 ? (
+                        "—"
+                      ) : (
+                        <>
+                          {collapsed ? (
+                            <p className="line-clamp-1 print:hidden">
+                              <span className={guests[0].attending ? undefined : "text-ink-soft line-through"}>
+                                {mealLabel(guests[0].meal, mealOptions)}
+                              </span>
+                            </p>
+                          ) : null}
+                          <ul className={collapsed ? "hidden print:block" : undefined}>
+                            {guests.map((guest, index) => (
+                              <li
+                                key={`${row.id}:meal:${index}`}
+                                className={`flex h-9 items-center border-b border-line/50 last:border-b-0 ${guest.attending ? "" : "text-ink-soft line-through"}`}
+                              >
+                                {mealLabel(guest.meal, mealOptions)}
+                              </li>
+                            ))}
+                          </ul>
+                        </>
+                      )}
                     </td>
                     <td className="max-w-xs px-3 py-3 whitespace-pre-wrap">{text(row.message)}</td>
                     <td className="px-3 py-3 whitespace-nowrap">{row.received}</td>
