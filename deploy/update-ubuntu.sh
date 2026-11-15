@@ -32,6 +32,18 @@ fi
 install -d -o "$APP_USER" -g "$APP_USER" "$NPM_HOME" "$APP_DIR/data" "$APP_DIR/data/photos"
 chown -R "$APP_USER:$APP_USER" "$APP_DIR" "$NPM_HOME"
 
+# A 1 GB machine kills `npm ci` and `next build` unless swap can absorb them.
+swap_kb="$(awk '/SwapTotal:/ {print $2}' /proc/meminfo)"
+if [[ "${swap_kb:-0}" -lt 1000000 ]]; then
+  if [[ ! -f /swapfile ]]; then
+    fallocate -l 2G /swapfile || dd if=/dev/zero of=/swapfile bs=1M count=2048
+    chmod 600 /swapfile
+    mkswap /swapfile
+  fi
+  swapon /swapfile || true
+  grep -q '/swapfile' /etc/fstab || echo '/swapfile none swap sw 0 0' >> /etc/fstab
+fi
+
 # Set this from outside the checkout. Git refuses the command when it is
 # started inside a repository owned by someone else.
 (

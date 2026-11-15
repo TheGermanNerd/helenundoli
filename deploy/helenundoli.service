@@ -10,6 +10,9 @@ Group=helenundoli
 WorkingDirectory=/var/www/helenundoli
 Environment=NODE_ENV=production
 ExecStart=/usr/bin/node /var/www/helenundoli/node_modules/next/dist/bin/next start -H 127.0.0.1 -p 3000
+# The admin update is a child of this process. Killing the whole control
+# group would stop the update at the same moment the site restarts.
+KillMode=process
 Restart=always
 RestartSec=5
 

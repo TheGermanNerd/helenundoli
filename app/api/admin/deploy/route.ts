@@ -39,11 +39,20 @@ export async function POST(request: Request) {
   }
 
   if (action === "update") {
-    const result = startUpdate();
-    if (!result.ok) {
-      return NextResponse.json({ error: result.error }, { status: result.status, headers: noStore });
+    try {
+      const result = startUpdate();
+      if (!result.ok) {
+        return NextResponse.json({ error: result.error }, { status: result.status, headers: noStore });
+      }
+      return NextResponse.json(deployInfo(), { headers: noStore });
+    } catch (error) {
+      const code = error && typeof error === "object" && "code" in error ? String(error.code) : "";
+      const message =
+        code === "EACCES" || code === "EPERM"
+          ? "Der Server darf die Update-Dateien nicht schreiben."
+          : "Die Aktualisierung konnte nicht gestartet werden.";
+      return NextResponse.json({ error: message }, { status: 500, headers: noStore });
     }
-    return NextResponse.json(deployInfo(), { headers: noStore });
   }
 
   return NextResponse.json({ error: "Diese Aktion gibt es nicht." }, { status: 400, headers: noStore });

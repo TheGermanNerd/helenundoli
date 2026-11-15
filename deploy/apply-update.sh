@@ -46,6 +46,7 @@ STATUS_FILE="$APP_DIR/data/update-status.json"
 LOG_FILE="$APP_DIR/data/update.log"
 STARTED="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 BRANCH=""
+STAGE=""
 
 export GIT_TERMINAL_PROMPT=0
 export HOME="$NPM_HOME"
@@ -121,10 +122,21 @@ PY
 
 fail() {
   local message="$1"
+  local detail=""
   trap - ERR
   mkdir -p "$APP_DIR/data"
+  if [[ "$message" == "Die Aktualisierung ist fehlgeschlagen." && -f "$LOG_FILE" ]]; then
+    detail="$(tail -n 6 "$LOG_FILE" | tr '\n' ' ' | tr -s ' ')"
+    detail="${detail:0:280}"
+    if [[ -n "${detail// /}" ]]; then
+      message="${message} ${detail}"
+    fi
+  fi
   printf '%s\n' "$message" >>"$LOG_FILE"
   printf '%s\n' "$message" >&2
+  if [[ -n "${STAGE:-}" ]]; then
+    rm -rf "$STAGE" || true
+  fi
   if [[ -z "${HELENUNDOLI_APPLY_ONLY:-}" ]]; then
     write_status error "" "$message" "" "" || true
   fi
@@ -204,17 +216,51 @@ logged git -C "$APP_DIR" reset --hard "origin/${BRANCH}"
 logged git -C "$APP_DIR" clean -fd
 printf '%s\n' "$BRANCH" >"$BRANCH_FILE"
 
+# Build beside the live checkout. Replacing .next or node_modules while
+# `next start` is serving them crashes that process, and systemd then kills
+# this script because it belongs to the same service.
+mem_kb="$(awk '/MemAvailable:/ {print $2}' /proc/meminfo)"
+swap_kb="$(awk '/SwapTotal:/ {print $2}' /proc/meminfo)"
+if [[ "${swap_kb:-0}" -lt 1000000 && "${mem_kb:-0}" -lt 1500000 ]]; then
+  fail "Zu wenig freier Speicher für den Build. Einmal per SSH ausführen: sudo bash /var/www/helenundoli/deploy/update-ubuntu.sh"
+fi
+
 if [[ -z "${HELENUNDOLI_APPLY_ONLY:-}" ]]; then
   write_status running install "Pakete werden installiert…" "" ""
 fi
+
+STAGE="$(mktemp -d "$APP_DIR/.update-stage.XXXXXX")"
+{
+  git -C "$APP_DIR" archive --format=tar HEAD | tar -C "$STAGE" -xf -
+} >>"$LOG_FILE" 2>&1
+rm -rf "$STAGE/data"
+ln -s "$APP_DIR/data" "$STAGE/data"
+if [[ -e "$APP_DIR/.env.local" ]]; then
+  ln -s "$APP_DIR/.env.local" "$STAGE/.env.local"
+fi
 # The website service sets NODE_ENV=production. npm ci would then skip the
 # devDependencies next build needs, so drop it for the install and the build.
-logged env -u NODE_ENV HOME="$NPM_HOME" npm_config_cache="$NPM_HOME" npm --prefix "$APP_DIR" ci
+logged env -u NODE_ENV HOME="$NPM_HOME" npm_config_cache="$NPM_HOME" npm --prefix "$STAGE" ci
 
 if [[ -z "${HELENUNDOLI_APPLY_ONLY:-}" ]]; then
   write_status running build "Die Website wird gebaut…" "" ""
 fi
-logged env -u NODE_ENV HOME="$NPM_HOME" npm_config_cache="$NPM_HOME" npm --prefix "$APP_DIR" run build
+logged env -u NODE_ENV HOME="$NPM_HOME" npm_config_cache="$NPM_HOME" npm --prefix "$STAGE" run build
+
+replace_tree() {
+  local name="$1"
+  local backup="$APP_DIR/${name}.previous"
+  rm -rf "$backup"
+  if [[ -e "$APP_DIR/$name" ]]; then
+    mv "$APP_DIR/$name" "$backup"
+  fi
+  mv "$STAGE/$name" "$APP_DIR/$name"
+  rm -rf "$backup"
+}
+replace_tree node_modules
+replace_tree .next
+rm -rf "$STAGE"
+STAGE=""
 
 trap - ERR
 
