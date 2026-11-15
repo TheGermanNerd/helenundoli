@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Pull a newer commit, rebuild, restart, and reboot the server.
-# Leaves .env.local and data/ in place.
+# Reset to the saved GitHub branch, rebuild, restart, and reboot the server.
+# The branch is data/deploy-branch. Leaves .env.local and data/ in place.
 #   sudo bash /var/www/helenundoli/deploy/update-ubuntu.sh
 set -euo pipefail
 
@@ -31,9 +31,13 @@ fi
 
 install -d -o "$APP_USER" -g "$APP_USER" "$NPM_HOME" "$APP_DIR/data" "$APP_DIR/data/photos"
 
-runuser -u "$APP_USER" -- env HOME="$NPM_HOME" git -C "$APP_DIR" pull --ff-only
-runuser -u "$APP_USER" -- env HOME="$NPM_HOME" npm_config_cache="$NPM_HOME" \
-  bash -c "cd '$APP_DIR' && npm ci && npm run build"
+if [[ ! -f "$APP_DIR/deploy/apply-update.sh" ]]; then
+  echo "Missing $APP_DIR/deploy/apply-update.sh" >&2
+  exit 1
+fi
+
+runuser -u "$APP_USER" -- env npm_config_cache="$NPM_HOME" HELENUNDOLI_APPLY_ONLY=1 \
+  bash "$APP_DIR/deploy/apply-update.sh"
 
 install -m 644 "$APP_DIR/deploy/helenundoli.service" /etc/systemd/system/helenundoli.service
 systemctl daemon-reload

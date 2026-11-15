@@ -34,10 +34,14 @@ yarn-error.log*
 .env*
 !.env.example
 
-# rsvp database and guest photos
+# rsvp database, guest photos, and server update bookkeeping
 /data/*.sqlite
 /data/*.sqlite-*
 /data/photos/
+/data/deploy-branch
+/data/update-status.json
+/data/update.log
+/data/update.lock
 
 # vercel
 .vercel
