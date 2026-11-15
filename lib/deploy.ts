@@ -204,8 +204,13 @@ function readLogTail() {
   }
 }
 
+function currentDir() {
+  const cwd = process.cwd();
+  return cwd.endsWith("/") || cwd.endsWith("\\") ? cwd.slice(0, -1) : cwd;
+}
+
 export function updatesAllowed() {
-  return process.env.NODE_ENV === "production" && path.resolve(process.cwd()) === SERVER_DIR;
+  return process.env.NODE_ENV === "production" && currentDir() === SERVER_DIR;
 }
 
 export function deployInfo(): DeployInfo {
