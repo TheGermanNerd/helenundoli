@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { wedding } from "@/lib/content";
 import { PlaceholderNote, Stationery } from "@/components/ornaments";
 
@@ -24,6 +25,21 @@ export function Faq() {
                   </span>
                 </summary>
                 <p className="mt-2 pr-8 leading-relaxed text-ink-soft">{item.answer}</p>
+                {"image" in item ? (
+                  <figure className="mt-4 pr-8">
+                    <Image
+                      src={item.image.src}
+                      alt={item.image.alt}
+                      width={item.image.width}
+                      height={item.image.height}
+                      sizes="(min-width: 640px) 32rem, calc(100vw - 5rem)"
+                      className="h-auto w-full border border-line"
+                    />
+                    <figcaption className="mt-2 text-sm leading-relaxed text-ink-soft">
+                      Der Pfeil zeigt den Eingang. Der rote Rahmen ist der Parkplatz am Heimannplatz.
+                    </figcaption>
+                  </figure>
+                ) : null}
               </details>
             ))}
           </div>

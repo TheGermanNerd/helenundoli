@@ -33,6 +33,12 @@ export const wedding = {
       question: "Wo können wir parken?",
       answer:
         "Am Heimathaus in Borghorst und bei Thies 42 gibt es Parkplätze in der Nähe. Kommt gern ein wenig früher an.",
+      image: {
+        src: "/parking/heimathaus-eingang.jpg",
+        alt: "Luftbild vom Heimathaus in Borghorst. Ein Pfeil markiert den Eingang, der Parkplatz am Heimannplatz ist rot umrandet.",
+        width: 1024,
+        height: 677,
+      },
     },
     {
       question: "Wie kommen wir von der Trauung zur Feier?",
