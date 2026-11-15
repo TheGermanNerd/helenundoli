@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { PlaceholderNote } from "@/components/ornaments";
+import { wedding } from "@/lib/content";
 import { MEALS, parseRsvp } from "@/lib/rsvp";
 
 const fieldClass =
@@ -136,8 +138,17 @@ export function RsvpForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} noValidate className="space-y-6">
-      <p className="text-sm text-ink-soft">Pflichtfelder sind mit * markiert.</p>
+    <div>
+      <div className="text-center">
+        <p className="font-serif text-[0.68rem] font-medium tracking-[0.28em] text-olive uppercase">Rückmeldung</p>
+        <h2 className="mt-3 font-serif text-4xl text-bronze sm:text-5xl">Sagt uns Bescheid</h2>
+        <p className="mx-auto mt-6 max-w-md text-lg leading-relaxed text-ink-soft">
+          Bitte sagt uns bis zum {wedding.replyBy} Bescheid, ob ihr dabei seid.
+        </p>
+        <PlaceholderNote>Platzhalterdatum</PlaceholderNote>
+      </div>
+      <form onSubmit={onSubmit} noValidate className="mt-10 space-y-6">
+        <p className="text-sm text-ink-soft">Pflichtfelder sind mit * markiert.</p>
       {error ? (
         <p role="alert" className="rounded-xl border border-wine/30 bg-wine/5 px-4 py-3 text-wine">
           {error}
@@ -337,6 +348,7 @@ export function RsvpForm() {
       >
         {pending ? "Wird gesendet…" : "Antwort senden"}
       </button>
-    </form>
+      </form>
+    </div>
   );
 }

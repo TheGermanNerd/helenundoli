@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAuthenticated } from "@/lib/auth";
-import { setGuestAttendance, setPartyAttendance } from "@/lib/db";
+import { deleteRsvp, removeGuest, setGuestAttendance, setPartyAttendance } from "@/lib/db";
 
 const noStore = { "Cache-Control": "no-store" };
 
@@ -23,17 +23,25 @@ export async function POST(request: Request) {
   if (!isRecord(body) || typeof body.id !== "number" || !Number.isInteger(body.id) || body.id < 1) {
     return NextResponse.json({ error: "Diese Antwort gibt es nicht." }, { status: 400, headers: noStore });
   }
-  if (typeof body.attending !== "boolean" || (body.action !== "guest" && body.action !== "all")) {
-    return NextResponse.json({ error: "Diese Aktion gibt es nicht." }, { status: 400, headers: noStore });
-  }
+  const missing = { ok: false as const, error: "Diese Aktion gibt es nicht." };
+  let result: { ok: true } | { ok: false; error: string };
 
   try {
-    const result =
-      body.action === "all"
-        ? setPartyAttendance(body.id, body.attending)
-        : typeof body.index === "number" && Number.isInteger(body.index)
-          ? setGuestAttendance(body.id, body.index, body.attending)
-          : { ok: false as const, error: "Diese Aktion gibt es nicht." };
+    if (body.action === "delete") {
+      result = deleteRsvp(body.id);
+    } else if (body.action === "delete-guest") {
+      result =
+        typeof body.index === "number" && Number.isInteger(body.index) ? removeGuest(body.id, body.index) : missing;
+    } else if ((body.action === "guest" || body.action === "all") && typeof body.attending === "boolean") {
+      result =
+        body.action === "all"
+          ? setPartyAttendance(body.id, body.attending)
+          : typeof body.index === "number" && Number.isInteger(body.index)
+            ? setGuestAttendance(body.id, body.index, body.attending)
+            : missing;
+    } else {
+      result = missing;
+    }
 
     if (!result.ok) {
       const status = result.error === "Diese Aktion gibt es nicht." ? 400 : 404;

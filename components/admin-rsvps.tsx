@@ -13,6 +13,11 @@ type Stats = {
   people: number;
 };
 
+type SaveBody =
+  | { id: number; action: "guest" | "all"; index?: number; attending: boolean }
+  | { id: number; action: "delete-guest"; index: number }
+  | { id: number; action: "delete" };
+
 function text(value: string | null) {
   return value && value.trim() ? value : "—";
 }
@@ -42,7 +47,7 @@ export function AdminRsvps({ rows, stats }: { rows: AdminRow[]; stats: Stats }) 
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
 
-  async function save(key: string, body: { id: number; action: "guest" | "all"; index?: number; attending: boolean }) {
+  async function save(key: string, body: SaveBody) {
     setBusy(key);
     setError("");
     try {
@@ -107,7 +112,7 @@ function GuestTable({
   query: string;
   onQuery: (value: string) => void;
   busy: string | null;
-  save: (key: string, body: { id: number; action: "guest" | "all"; index?: number; attending: boolean }) => void;
+  save: (key: string, body: SaveBody) => void;
 }) {
   const [openIds, setOpenIds] = useState<ReadonlySet<number>>(new Set());
 
@@ -203,11 +208,22 @@ function GuestTable({
                           onClick={() =>
                             save(`${row.id}:all`, { id: row.id, action: "all", attending: coming === 0 })
                           }
-                          className="mt-2 text-xs text-wine underline decoration-wine/40 underline-offset-2 hover:decoration-wine disabled:opacity-60"
+                          className="mt-2 block text-xs text-wine underline decoration-wine/40 underline-offset-2 hover:decoration-wine disabled:opacity-60 print:hidden"
                         >
                           {busy === `${row.id}:all` ? "Wird gespeichert…" : coming > 0 ? "Alle absagen" : "Alle zusagen"}
                         </button>
                       ) : null}
+                      <button
+                        type="button"
+                        disabled={busy !== null}
+                        onClick={() => {
+                          if (!window.confirm(`Die Antwort von ${row.name} wirklich löschen?`)) return;
+                          save(`${row.id}:delete`, { id: row.id, action: "delete" });
+                        }}
+                        className="mt-2 block text-xs text-ink-soft underline decoration-ink-soft/40 underline-offset-2 hover:text-wine hover:decoration-wine disabled:opacity-60 print:hidden"
+                      >
+                        {busy === `${row.id}:delete` ? "Wird gelöscht…" : "Antwort löschen"}
+                      </button>
                     </td>
                     <td className="px-3 py-3">{guests.length === 0 ? "—" : coming}</td>
                     <td className="px-3 py-3">
@@ -233,22 +249,44 @@ function GuestTable({
                                       </span>
                                     )}
                                   </span>
-                                  <button
-                                    type="button"
-                                    disabled={busy !== null}
-                                    aria-label={guest.attending ? `${guest.name} absagen` : `${guest.name} wieder zusagen`}
-                                    onClick={() =>
-                                      save(key, {
-                                        id: row.id,
-                                        action: "guest",
-                                        index,
-                                        attending: !guest.attending,
-                                      })
-                                    }
-                                    className={`shrink-0 rounded-lg border border-wine px-2 py-1 text-xs text-wine hover:bg-wine hover:text-paper disabled:opacity-60${expandable && !expanded ? " print:hidden" : ""}`}
-                                  >
-                                    {busy === key ? "…" : guest.attending ? "Absagen" : "Zusage"}
-                                  </button>
+                                  <span className={`flex shrink-0 items-center gap-2${expandable && !expanded ? " print:hidden" : ""}`}>
+                                    <button
+                                      type="button"
+                                      disabled={busy !== null}
+                                      aria-label={guest.attending ? `${guest.name} absagen` : `${guest.name} wieder zusagen`}
+                                      onClick={() =>
+                                        save(key, {
+                                          id: row.id,
+                                          action: "guest",
+                                          index,
+                                          attending: !guest.attending,
+                                        })
+                                      }
+                                      className="rounded-lg border border-wine px-2 py-1 text-xs text-wine hover:bg-wine hover:text-paper disabled:opacity-60"
+                                    >
+                                      {busy === key ? "…" : guest.attending ? "Absagen" : "Zusage"}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      disabled={busy !== null}
+                                      aria-label={`${guest.name} löschen`}
+                                      onClick={() => {
+                                        const last = guests.length === 1;
+                                        const question = last
+                                          ? `${guest.name} wirklich löschen? Die Antwort wird damit entfernt.`
+                                          : `${guest.name} wirklich aus der Antwort löschen?`;
+                                        if (!window.confirm(question)) return;
+                                        save(`${row.id}:delete:${index}`, {
+                                          id: row.id,
+                                          action: "delete-guest",
+                                          index,
+                                        });
+                                      }}
+                                      className="text-xs text-ink-soft underline decoration-ink-soft/40 underline-offset-2 hover:text-wine hover:decoration-wine disabled:opacity-60"
+                                    >
+                                      {busy === `${row.id}:delete:${index}` ? "…" : "Löschen"}
+                                    </button>
+                                  </span>
                                 </li>
                               );
                             })}

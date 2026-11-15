@@ -183,6 +183,11 @@ function getRsvp(id: number) {
   return getDb().prepare("SELECT * FROM rsvps WHERE id = ?").get(id) as RsvpRow | undefined;
 }
 
+function mealValue(guests: ManagedGuest[]) {
+  if (guests.length === 1) return guests[0].meal;
+  return JSON.stringify(guests.map((guest) => guest.meal));
+}
+
 function writeAttendance(id: number, guests: ManagedGuest[]) {
   const coming = guests.filter((guest) => guest.attending).length;
   getDb()
@@ -197,6 +202,29 @@ function writeAttendance(id: number, guests: ManagedGuest[]) {
       guestCount: coming,
       attending: coming > 0 ? 1 : 0,
     });
+}
+
+function writeGuests(id: number, guests: ManagedGuest[]) {
+  const coming = guests.filter((guest) => guest.attending).length;
+  getDb()
+    .prepare(
+      `UPDATE rsvps
+       SET guest_names = @guestNames, meal = @meal, guest_flags = @flags,
+           guest_count = @guestCount, attending = @attending
+       WHERE id = @id`,
+    )
+    .run({
+      id,
+      guestNames: guests.map((guest) => guest.name).join("\n"),
+      meal: mealValue(guests),
+      flags: JSON.stringify(guests.map((guest) => guest.attending)),
+      guestCount: coming,
+      attending: coming > 0 ? 1 : 0,
+    });
+}
+
+function deleteRsvpRow(id: number) {
+  return getDb().prepare("DELETE FROM rsvps WHERE id = ?").run(id).changes > 0;
 }
 
 export function setGuestAttendance(id: number, index: number, attending: boolean) {
@@ -226,5 +254,30 @@ export function setPartyAttendance(id: number, attending: boolean) {
     id,
     guests.map((guest) => ({ ...guest, attending })),
   );
+  return { ok: true as const };
+}
+
+export function removeGuest(id: number, index: number) {
+  const row = getRsvp(id);
+  if (!row) return { ok: false as const, error: "Diese Antwort gibt es nicht mehr." };
+  const guests = managedGuests(row);
+  if (!Number.isInteger(index) || index < 0 || index >= guests.length) {
+    return { ok: false as const, error: "Diesen Gast gibt es in der Antwort nicht." };
+  }
+
+  const remaining = guests.filter((_, guestIndex) => guestIndex !== index);
+  if (remaining.length === 0) {
+    deleteRsvpRow(id);
+    return { ok: true as const };
+  }
+
+  writeGuests(id, remaining);
+  return { ok: true as const };
+}
+
+export function deleteRsvp(id: number) {
+  if (!deleteRsvpRow(id)) {
+    return { ok: false as const, error: "Diese Antwort gibt es nicht mehr." };
+  }
   return { ok: true as const };
 }
