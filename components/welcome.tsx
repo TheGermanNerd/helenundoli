@@ -12,11 +12,7 @@ export function Welcome() {
       <Stationery florals className="mx-auto max-w-lg">
         <div className="px-6 pt-32 pb-44 text-center sm:px-14 sm:pt-28 sm:pb-40">
           <p className={`${kicker} mx-auto max-w-[12.5rem]`}>
-            Gemeinsam mit
-            <br />
-            unseren Familien
-            <br />
-            laden wir euch
+            Wir laden euch
             <br />
             herzlich ein
             <br />
@@ -57,7 +53,7 @@ export function Welcome() {
           )}
           <div className={`${kicker} mt-9 tracking-[0.22em]`}>
             <p>{wedding.ceremony.title}</p>
-            <p className="mt-4">{wedding.ceremony.venue}</p>
+            <p>{wedding.ceremony.venue}</p>
             {wedding.ceremony.lines.map((line) => (
               <p key={line}>{line}</p>
             ))}
