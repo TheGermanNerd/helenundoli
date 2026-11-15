@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { hasAccess } from "@/lib/access";
-import { insertRsvp } from "@/lib/db";
+import { getRsvpFieldRules, insertRsvp } from "@/lib/db";
+import { listMealOptions } from "@/lib/meals";
 import { parseRsvp } from "@/lib/rsvp";
 
 export async function POST(request: Request) {
@@ -18,7 +19,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Die Antwort konnte nicht gelesen werden." }, { status: 400 });
   }
 
-  const parsed = parseRsvp(body);
+  const parsed = parseRsvp(body, listMealOptions(), getRsvpFieldRules());
   if (parsed.status === "error") {
     return NextResponse.json({ error: parsed.error }, { status: 400, headers: { "Cache-Control": "no-store" } });
   }

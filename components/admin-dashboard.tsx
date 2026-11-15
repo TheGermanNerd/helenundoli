@@ -1,6 +1,7 @@
 import type { RsvpRow } from "@/lib/db";
 import { formatTimestamp } from "@/lib/format";
 import type { PhotoRow } from "@/lib/photos";
+import type { MealOption, RsvpFieldRules } from "@/lib/rsvp";
 import { AdminPhotos } from "@/components/admin-photos";
 import { AdminRsvps } from "@/components/admin-rsvps";
 import { AdminServer } from "@/components/admin-server";
@@ -28,6 +29,9 @@ export function AdminDashboard({
   uploadButtonDisableAt,
   autoApproveEnabled,
   gameEnabled,
+  meals,
+  fields,
+  mealCatalog,
   game,
   usage,
 }: {
@@ -43,6 +47,9 @@ export function AdminDashboard({
   uploadButtonDisableAt: string | null;
   autoApproveEnabled: boolean;
   gameEnabled: boolean;
+  meals: MealOption[];
+  fields: RsvpFieldRules;
+  mealCatalog: MealOption[];
   game: React.ReactNode;
   usage: ServerUsage;
 }) {
@@ -54,6 +61,7 @@ export function AdminDashboard({
         <AdminRsvps
           rows={rows.map((row) => ({ ...row, received: formatTimestamp(row.created_at) }))}
           stats={stats}
+          mealOptions={mealCatalog}
         />
       }
       photos={
@@ -78,6 +86,8 @@ export function AdminDashboard({
           uploadButtonEnableAt={uploadButtonEnableAt}
           uploadButtonDisableAt={uploadButtonDisableAt}
           gameEnabled={gameEnabled}
+          meals={meals}
+          fields={fields}
         />
       }
       server={<AdminServer usage={usage} />}

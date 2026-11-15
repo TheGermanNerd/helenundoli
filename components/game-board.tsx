@@ -1,5 +1,6 @@
 import { pointsLabel } from "@/lib/game-input";
 import type { GameView } from "@/lib/game";
+import { GameTasks } from "@/components/game-tasks";
 
 export function GameBoard({ view }: { view: GameView }) {
   const goal = view.settings.goalPoints;
@@ -37,22 +38,7 @@ export function GameBoard({ view }: { view: GameView }) {
 
       <section>
         <h2 className="font-serif text-2xl text-bronze">Aufgaben</h2>
-        <ol className="mt-4 space-y-4">
-          {view.tasks.map((task, index) => (
-            <li key={task.id} className="border border-line bg-paper px-4 py-4">
-              <div className="flex items-start justify-between gap-3">
-                <h3 className="font-serif text-2xl text-bronze">
-                  {index + 1}. {task.title}
-                </h3>
-                <p className="shrink-0 text-sm text-olive">{pointsLabel(task.points)}</p>
-              </div>
-              <p className="mt-2 whitespace-pre-wrap text-ink-soft">{task.instruction}</p>
-              <p className={`mt-3 text-sm font-medium ${task.done ? "text-olive" : "text-ink-soft"}`}>
-                {task.done ? "Erledigt" : "Noch offen"}
-              </p>
-            </li>
-          ))}
-        </ol>
+        <GameTasks tasks={view.tasks} playerName={view.playerName} />
       </section>
 
       <section>

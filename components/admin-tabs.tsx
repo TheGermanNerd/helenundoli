@@ -56,7 +56,7 @@ export function AdminTabs({
         : tab === "game"
           ? "Bis zu fünf Aufgaben. Punkte gibt es nur über den QR-Code der Aufgabe."
           : tab === "settings"
-            ? "Bilder, der Foto-Button und das Spiel sind für Gäste nur sichtbar, solange sie eingeschaltet sind."
+            ? "Bilder, der Foto-Button und das Spiel sind für Gäste nur sichtbar, solange sie eingeschaltet sind. Pflichtfelder und die Menüauswahl für die Zusagen legt ihr hier fest."
             : "Festplatte, Arbeitsspeicher und die Bilder auf diesem Server.";
 
   return (

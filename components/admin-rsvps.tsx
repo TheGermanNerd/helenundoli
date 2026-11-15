@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { RsvpRow } from "@/lib/db";
-import { attendingMealLabel, managedGuests, type ManagedGuest } from "@/lib/rsvp";
+import { attendingMealLabel, managedGuests, type ManagedGuest, type MealOption } from "@/lib/rsvp";
 
 type AdminRow = RsvpRow & { received: string };
 
@@ -41,7 +41,15 @@ function matchesQuery(row: AdminRow, query: string) {
     .includes(needle);
 }
 
-export function AdminRsvps({ rows, stats }: { rows: AdminRow[]; stats: Stats }) {
+export function AdminRsvps({
+  rows,
+  stats,
+  mealOptions,
+}: {
+  rows: AdminRow[];
+  stats: Stats;
+  mealOptions: MealOption[];
+}) {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -95,7 +103,14 @@ export function AdminRsvps({ rows, stats }: { rows: AdminRow[]; stats: Stats }) 
       {rows.length === 0 ? (
         <p className="mt-10 font-serif text-2xl text-ink-soft">Noch keine Antworten.</p>
       ) : (
-        <GuestTable rows={rows.filter((row) => matchesQuery(row, query))} query={query} onQuery={setQuery} busy={busy} save={save} />
+        <GuestTable
+          rows={rows.filter((row) => matchesQuery(row, query))}
+          query={query}
+          onQuery={setQuery}
+          busy={busy}
+          save={save}
+          mealOptions={mealOptions}
+        />
       )}
     </div>
   );
@@ -107,12 +122,14 @@ function GuestTable({
   onQuery,
   busy,
   save,
+  mealOptions,
 }: {
   rows: AdminRow[];
   query: string;
   onQuery: (value: string) => void;
   busy: string | null;
   save: (key: string, body: SaveBody) => void;
+  mealOptions: MealOption[];
 }) {
   const [openIds, setOpenIds] = useState<ReadonlySet<number>>(new Set());
 
@@ -167,7 +184,7 @@ function GuestTable({
                 const declined = guests.length - coming;
                 const expandable = guests.length > 1;
                 const expanded = expandable && openIds.has(row.id);
-                const meals = guests.length === 0 ? "—" : attendingMealLabel(guests);
+                const mealText = guests.length === 0 ? "—" : attendingMealLabel(guests, mealOptions);
                 return (
                   <tr key={row.id} className="border-b border-line align-top last:border-b-0">
                     <td className="px-1 py-2">
@@ -296,10 +313,10 @@ function GuestTable({
                     </td>
                     <td className="px-3 py-3">
                       {expandable && !expanded ? (
-                        <span className="line-clamp-1 print:hidden">{meals.replaceAll("\n", " · ")}</span>
+                        <span className="line-clamp-1 print:hidden">{mealText.replaceAll("\n", " · ")}</span>
                       ) : null}
                       <span className={expandable && !expanded ? "hidden whitespace-pre-wrap print:block" : "whitespace-pre-wrap"}>
-                        {meals}
+                        {mealText}
                       </span>
                     </td>
                     <td className="max-w-xs px-3 py-3 whitespace-pre-wrap">{text(row.message)}</td>

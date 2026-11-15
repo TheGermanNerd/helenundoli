@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isAuthenticated } from "@/lib/auth";
 import { listRsvps } from "@/lib/db";
 import { csvEscape, formatTimestamp } from "@/lib/format";
+import { listMealCatalog } from "@/lib/meals";
 import { attendingMealLabel, exportGuestNames, managedGuests, mealLabel } from "@/lib/rsvp";
 
 export async function GET() {
@@ -10,6 +11,7 @@ export async function GET() {
   }
 
   const header = ["Name", "E-Mail", "Teilnahme", "Anzahl", "Gästenamen", "Menü", "Nachricht", "Zeitpunkt"];
+  const meals = listMealCatalog();
   const lines = listRsvps().map((row) => {
     const guests = managedGuests(row);
     const coming = guests.filter((guest) => guest.attending).length;
@@ -20,7 +22,7 @@ export async function GET() {
       attending ? "Zusage" : "Absage",
       guests.length === 0 ? (row.attending ? String(row.guest_count) : "") : String(coming),
       guests.length === 0 ? (row.guest_names ?? "") : exportGuestNames(guests),
-      attending ? (guests.length === 0 ? mealLabel(row.meal) : attendingMealLabel(guests)) : "",
+      attending ? (guests.length === 0 ? mealLabel(row.meal, meals) : attendingMealLabel(guests, meals)) : "",
       row.message ?? "",
       formatTimestamp(row.created_at),
     ]

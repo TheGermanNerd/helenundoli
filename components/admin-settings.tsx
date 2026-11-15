@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDateTimeLocal, formatTimestamp } from "@/lib/format";
+import { MEAL_LABEL_LIMIT, MEAL_OPTION_LIMIT, type MealOption, type RsvpFieldRules } from "@/lib/rsvp";
 
 const fieldClass = "mt-2 w-full rounded-xl border border-line bg-cream px-3 py-2.5 text-ink scheme-light";
 
@@ -20,6 +21,8 @@ export function AdminSettings({
   uploadButtonEnableAt,
   uploadButtonDisableAt,
   gameEnabled,
+  meals,
+  fields,
 }: {
   photosEnabled: boolean;
   photosEnableAt: string | null;
@@ -28,9 +31,13 @@ export function AdminSettings({
   uploadButtonEnableAt: string | null;
   uploadButtonDisableAt: string | null;
   gameEnabled: boolean;
+  meals: MealOption[];
+  fields: RsvpFieldRules;
 }) {
   return (
     <div className="space-y-10">
+      <RequiredFields fields={fields} />
+      <MealOptions meals={meals} />
       <VisibilityCard
         enabled={photosEnabled}
         enableAt={photosEnableAt}
@@ -67,6 +74,208 @@ export function AdminSettings({
       />
       <GameVisibility enabled={gameEnabled} />
     </div>
+  );
+}
+
+type MealDraft = {
+  key: string;
+  value: string;
+  label: string;
+};
+
+function mealDrafts(meals: MealOption[]): MealDraft[] {
+  return meals.map((meal) => ({ key: meal.value, value: meal.value, label: meal.label }));
+}
+
+function mealSignature(meals: MealOption[]) {
+  return meals.map((meal) => `${meal.value}\t${meal.label}`).join("\n");
+}
+
+function fieldSignature(fields: RsvpFieldRules) {
+  return `${fields.firstNameRequired}:${fields.lastNameRequired}:${fields.emailRequired}`;
+}
+
+function RequiredFields({ fields }: { fields: RsvpFieldRules }) {
+  const { post, pending, error } = useAdminPost("/api/admin/rsvp-fields");
+  const incoming = fieldSignature(fields);
+  const [draft, setDraft] = useState(fields);
+  const [seen, setSeen] = useState(incoming);
+  if (seen !== incoming) {
+    setSeen(incoming);
+    setDraft(fields);
+  }
+
+  const options = [
+    { key: "firstNameRequired", label: "Vorname" },
+    { key: "lastNameRequired", label: "Nachname" },
+    { key: "emailRequired", label: "E-Mail" },
+  ] as const;
+
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        void post({
+          firstNameRequired: draft.firstNameRequired,
+          lastNameRequired: draft.lastNameRequired,
+          emailRequired: draft.emailRequired,
+        });
+      }}
+      className="border border-line bg-paper px-4 py-4"
+    >
+      <h2 className="font-serif text-3xl text-bronze">Pflichtfelder</h2>
+      <p className="mt-2 text-sm text-ink-soft">
+        Ein Haken macht das Feld im Zusagen-Formular zur Pflicht. Vorname und Nachname gelten auch für weitere Gäste.
+        Ist die E-Mail Pflicht, verschwindet der Hinweis, dass sie freiwillig ist.
+      </p>
+      <ul className="mt-4 space-y-3">
+        {options.map((option) => (
+          <li key={option.key}>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={draft[option.key]}
+                disabled={pending}
+                onChange={(event) => setDraft((current) => ({ ...current, [option.key]: event.target.checked }))}
+                className="size-4 accent-wine"
+              />
+              {option.label}
+            </label>
+          </li>
+        ))}
+      </ul>
+      {error ? <ErrorNote message={error} /> : null}
+      <button
+        type="submit"
+        disabled={pending}
+        className="mt-4 rounded-xl bg-wine px-4 py-2 text-sm text-paper hover:bg-wine-deep disabled:opacity-60"
+      >
+        {pending ? "Wird gespeichert…" : "Pflichtfelder speichern"}
+      </button>
+    </form>
+  );
+}
+
+function MealOptions({ meals }: { meals: MealOption[] }) {
+  const { post, pending, error } = useAdminPost("/api/admin/meals");
+  const incoming = mealSignature(meals);
+  const [drafts, setDrafts] = useState<MealDraft[]>(() => mealDrafts(meals));
+  const [seen, setSeen] = useState(incoming);
+  if (seen !== incoming) {
+    setSeen(incoming);
+    setDrafts(mealDrafts(meals));
+  }
+
+  function updateLabel(key: string, label: string) {
+    setDrafts((current) => current.map((item) => (item.key === key ? { ...item, label } : item)));
+  }
+
+  function move(index: number, direction: -1 | 1) {
+    setDrafts((current) => {
+      const next = index + direction;
+      if (next < 0 || next >= current.length) return current;
+      const copy = [...current];
+      const [item] = copy.splice(index, 1);
+      copy.splice(next, 0, item);
+      return copy;
+    });
+  }
+
+  function remove(key: string) {
+    setDrafts((current) => (current.length < 2 ? current : current.filter((item) => item.key !== key)));
+  }
+
+  function add() {
+    setDrafts((current) =>
+      current.length >= MEAL_OPTION_LIMIT
+        ? current
+        : [...current, { key: crypto.randomUUID(), value: "", label: "" }],
+    );
+  }
+
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        void post({ meals: drafts.map((item) => ({ value: item.value, label: item.label })) });
+      }}
+      className="border border-line bg-paper px-4 py-4"
+    >
+      <h2 className="font-serif text-3xl text-bronze">Menüwunsch</h2>
+      <p className="mt-2 text-sm text-ink-soft">
+        Diese Namen erscheinen im Zusagen-Formular, in dieser Reihenfolge. „Bitte wählen“ bleibt die leere Vorauswahl.
+        Umbenennen ändert auch die Anzeige schon abgegebener Antworten. Entfernte Menüs verschwinden aus dem Formular
+        und bleiben bei alten Antworten sichtbar.
+      </p>
+      <ul className="mt-4 space-y-3">
+        {drafts.map((draft, index) => (
+          <li key={draft.key} className="flex flex-wrap items-center gap-2">
+            <label htmlFor={`meal-option-${draft.key}`} className="sr-only">
+              Menü {index + 1}
+            </label>
+            <input
+              id={`meal-option-${draft.key}`}
+              value={draft.label}
+              maxLength={MEAL_LABEL_LIMIT}
+              autoComplete="off"
+              onChange={(event) => updateLabel(draft.key, event.target.value)}
+              className="min-w-0 flex-1 rounded-xl border border-line bg-cream px-3 py-2.5 text-ink scheme-light"
+            />
+            <div className="flex gap-2">
+              <button
+                type="button"
+                aria-label={`Menü ${index + 1} nach oben`}
+                disabled={pending || index === 0}
+                onClick={() => move(index, -1)}
+                className="rounded-xl border border-line px-3 py-2 text-sm text-ink hover:border-wine disabled:opacity-40"
+              >
+                Hoch
+              </button>
+              <button
+                type="button"
+                aria-label={`Menü ${index + 1} nach unten`}
+                disabled={pending || index === drafts.length - 1}
+                onClick={() => move(index, 1)}
+                className="rounded-xl border border-line px-3 py-2 text-sm text-ink hover:border-wine disabled:opacity-40"
+              >
+                Runter
+              </button>
+              <button
+                type="button"
+                aria-label={`Menü ${index + 1} entfernen`}
+                disabled={pending || drafts.length < 2}
+                onClick={() => remove(draft.key)}
+                className="rounded-xl border border-wine px-3 py-2 text-sm text-wine hover:bg-wine hover:text-paper disabled:opacity-40"
+              >
+                Entfernen
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
+      {error ? <ErrorNote message={error} /> : null}
+      <div className="mt-4 flex flex-wrap gap-3">
+        {drafts.length < MEAL_OPTION_LIMIT ? (
+          <button
+            type="button"
+            disabled={pending}
+            onClick={add}
+            className="rounded-xl border border-wine px-4 py-2 text-sm text-wine hover:bg-wine hover:text-paper disabled:opacity-60"
+          >
+            Menü hinzufügen
+          </button>
+        ) : (
+          <p className="self-center text-sm text-ink-soft">20 Menüs sind das Maximum.</p>
+        )}
+        <button
+          type="submit"
+          disabled={pending}
+          className="rounded-xl bg-wine px-4 py-2 text-sm text-paper hover:bg-wine-deep disabled:opacity-60"
+        >
+          {pending ? "Wird gespeichert…" : "Menüs speichern"}
+        </button>
+      </div>
+    </form>
   );
 }
 

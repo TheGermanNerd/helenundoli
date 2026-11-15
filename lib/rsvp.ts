@@ -1,12 +1,32 @@
-export const MEALS = [
+export type MealOption = {
+  value: string;
+  label: string;
+};
+
+export const DEFAULT_MEALS: MealOption[] = [
   { value: "fleisch", label: "Fleisch" },
   { value: "fisch", label: "Fisch" },
   { value: "vegetarisch", label: "Vegetarisch" },
   { value: "vegan", label: "Vegan" },
   { value: "offen", label: "Noch offen" },
-] as const;
+];
 
-export type Meal = (typeof MEALS)[number]["value"];
+export const MEAL_OPTION_LIMIT = 20;
+export const MEAL_LABEL_LIMIT = 40;
+
+export type RsvpFieldRules = {
+  firstNameRequired: boolean;
+  lastNameRequired: boolean;
+  emailRequired: boolean;
+};
+
+export const DEFAULT_RSVP_FIELDS: RsvpFieldRules = {
+  firstNameRequired: true,
+  lastNameRequired: false,
+  emailRequired: false,
+};
+
+export type Meal = string;
 
 export type Guest = {
   firstName: string;
@@ -48,26 +68,96 @@ function cleanBlock(value: string) {
   return value.replace(/\r\n/g, "\n").trim();
 }
 
-function isMeal(value: string): value is Meal {
-  return MEALS.some((meal) => meal.value === value);
+const STORED_MEAL = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+function readStoredMeal(value: string) {
+  return value.length > 0 && value.length <= 40 && STORED_MEAL.test(value);
 }
 
-function mealName(value: string) {
-  return MEALS.find((meal) => meal.value === value)?.label ?? null;
+function isOfferedMeal(value: string, meals: readonly MealOption[]) {
+  return meals.some((meal) => meal.value === value);
 }
 
-export function mealLabel(value: string | null) {
+function mealName(value: string, meals: readonly MealOption[]) {
+  return meals.find((meal) => meal.value === value)?.label ?? (readStoredMeal(value) ? value : null);
+}
+
+export function mealLabel(value: string | null, meals: readonly MealOption[]) {
   if (!value) return "—";
-  const single = mealName(value);
-  if (single) return single;
+  if (readStoredMeal(value)) return mealName(value, meals) ?? "—";
 
   try {
     const parsed = JSON.parse(value) as unknown;
     if (!Array.isArray(parsed) || parsed.length === 0) return "—";
-    return parsed.map((item) => (typeof item === "string" ? (mealName(item) ?? "—") : "—")).join("\n");
+    return parsed.map((item) => (typeof item === "string" ? (mealName(item, meals) ?? "—") : "—")).join("\n");
   } catch {
     return "—";
   }
+}
+
+export function parseMealDraft(
+  input: unknown,
+): { ok: true; meals: MealOption[] } | { ok: false; error: string } {
+  if (!Array.isArray(input)) {
+    return { ok: false, error: "Die Menüs konnten nicht gelesen werden." };
+  }
+  if (input.length < 1) {
+    return { ok: false, error: "Mindestens ein Menü muss bleiben." };
+  }
+  if (input.length > MEAL_OPTION_LIMIT) {
+    return { ok: false, error: "Mehr als 20 Menüs sind zu viele." };
+  }
+
+  const meals: MealOption[] = [];
+  const labels = new Set<string>();
+  const values = new Set<string>();
+
+  for (const item of input) {
+    if (!isRecord(item)) {
+      return { ok: false, error: "Die Menüs konnten nicht gelesen werden." };
+    }
+    const label = cleanLine(readString(item, "label"));
+    const value = cleanLine(readString(item, "value"));
+    if (!label) {
+      return { ok: false, error: "Jedes Menü braucht einen Namen." };
+    }
+    if (label.length > MEAL_LABEL_LIMIT) {
+      return { ok: false, error: "Ein Menüname ist zu lang." };
+    }
+    const labelKey = label.toLocaleLowerCase("de");
+    if (labels.has(labelKey)) {
+      return { ok: false, error: "Zwei Menüs heißen gleich." };
+    }
+    labels.add(labelKey);
+    if (value && (!readStoredMeal(value) || values.has(value))) {
+      return { ok: false, error: "Die Menüs konnten nicht gelesen werden." };
+    }
+    if (value) values.add(value);
+    meals.push({ value, label });
+  }
+
+  return { ok: true, meals };
+}
+
+export function parseRsvpFieldRules(
+  input: unknown,
+): { ok: true; fields: RsvpFieldRules } | { ok: false; error: string } {
+  if (!isRecord(input)) {
+    return { ok: false, error: "Die Pflichtfelder konnten nicht gelesen werden." };
+  }
+
+  const firstNameRequired = input.firstNameRequired;
+  const lastNameRequired = input.lastNameRequired;
+  const emailRequired = input.emailRequired;
+  if (
+    typeof firstNameRequired !== "boolean" ||
+    typeof lastNameRequired !== "boolean" ||
+    typeof emailRequired !== "boolean"
+  ) {
+    return { ok: false, error: "Die Pflichtfelder konnten nicht gelesen werden." };
+  }
+
+  return { ok: true, fields: { firstNameRequired, lastNameRequired, emailRequired } };
 }
 
 export type ManagedGuest = {
@@ -112,14 +202,14 @@ function splitGuestNames(raw: string | null, expected: number) {
 function mealsForCount(value: string | null, count: number): (Meal | null)[] {
   if (count === 0) return [];
   if (!value) return Array.from({ length: count }, () => null);
-  if (isMeal(value)) return Array.from({ length: count }, () => value);
+  if (readStoredMeal(value)) return Array.from({ length: count }, () => value);
 
   try {
     const parsed = JSON.parse(value) as unknown;
     if (Array.isArray(parsed)) {
       return Array.from({ length: count }, (_, index) => {
         const item = parsed[index];
-        return typeof item === "string" && isMeal(item) ? item : null;
+        return typeof item === "string" && readStoredMeal(item) ? item : null;
       });
     }
   } catch {
@@ -144,10 +234,10 @@ export function managedGuests(row: GuestSource): ManagedGuest[] {
   }));
 }
 
-export function attendingMealLabel(guests: ManagedGuest[]) {
+export function attendingMealLabel(guests: ManagedGuest[], meals: readonly MealOption[]) {
   const labels = guests
     .filter((guest) => guest.attending)
-    .map((guest) => (guest.meal ? mealName(guest.meal) ?? "—" : "—"));
+    .map((guest) => (guest.meal ? mealName(guest.meal, meals) ?? "—" : "—"));
   if (labels.length === 0) return "—";
   if (labels.every((label) => label === labels[0])) return labels[0];
   return labels.join("\n");
@@ -164,6 +254,8 @@ function guestLine(guest: Guest) {
 function readGuests(
   input: Record<string, unknown>,
   guestCount: number,
+  meals: readonly MealOption[],
+  fields: RsvpFieldRules,
 ): { ok: false; error: string } | { ok: true; guestNames: string; meal: string } {
   const raw = input.guests;
   if (!Array.isArray(raw) || raw.length !== guestCount) {
@@ -179,18 +271,21 @@ function readGuests(
 
     const firstName = cleanLine(readString(item, "firstName"));
     const lastName = cleanLine(readString(item, "lastName"));
-    if (!firstName) {
+    if (fields.firstNameRequired && !firstName) {
       return { ok: false, error: `Bitte gebt den Vornamen von Gast ${index + 1} an.` };
     }
     if (firstName.length > 80) {
       return { ok: false, error: `Der Vorname von Gast ${index + 1} ist zu lang.` };
+    }
+    if (fields.lastNameRequired && !lastName) {
+      return { ok: false, error: `Bitte gebt den Nachnamen von Gast ${index + 1} an.` };
     }
     if (lastName.length > 80) {
       return { ok: false, error: `Der Nachname von Gast ${index + 1} ist zu lang.` };
     }
 
     const meal = readString(item, "meal");
-    if (!isMeal(meal)) {
+    if (!isOfferedMeal(meal, meals)) {
       return { ok: false, error: `Bitte wählt ein Menü für Gast ${index + 1}.` };
     }
 
@@ -209,7 +304,11 @@ function readGuests(
   };
 }
 
-export function parseRsvp(input: unknown): ParseResult {
+export function parseRsvp(
+  input: unknown,
+  meals: readonly MealOption[],
+  fields: RsvpFieldRules = DEFAULT_RSVP_FIELDS,
+): ParseResult {
   if (!isRecord(input)) {
     return { status: "error", error: "Die Antwort konnte nicht gelesen werden." };
   }
@@ -220,11 +319,14 @@ export function parseRsvp(input: unknown): ParseResult {
 
   const firstName = cleanLine(readString(input, "firstName"));
   const lastName = cleanLine(readString(input, "lastName"));
-  if (!firstName) {
+  if (fields.firstNameRequired && !firstName) {
     return { status: "error", error: "Bitte gebt einen Vornamen an." };
   }
   if (firstName.length > 80) {
     return { status: "error", error: "Der Vorname ist zu lang." };
+  }
+  if (fields.lastNameRequired && !lastName) {
+    return { status: "error", error: "Bitte gebt einen Nachnamen an." };
   }
   if (lastName.length > 80) {
     return { status: "error", error: "Der Nachname ist zu lang." };
@@ -232,6 +334,9 @@ export function parseRsvp(input: unknown): ParseResult {
   const name = [firstName, lastName].filter(Boolean).join(" ");
 
   const email = cleanLine(readString(input, "email"));
+  if (fields.emailRequired && !email) {
+    return { status: "error", error: "Bitte gebt eine E-Mail-Adresse an." };
+  }
   if (email && (!EMAIL.test(email) || email.length > 254)) {
     return { status: "error", error: "Bitte gebt eine gültige E-Mail-Adresse an." };
   }
@@ -265,7 +370,7 @@ export function parseRsvp(input: unknown): ParseResult {
     return { status: "error", error: "Die Anzahl Personen liegt zwischen 1 und 20." };
   }
 
-  const guests = readGuests(input, guestCount);
+  const guests = readGuests(input, guestCount, meals, fields);
   if (!guests.ok) {
     return { status: "error", error: guests.error };
   }

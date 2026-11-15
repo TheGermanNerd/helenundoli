@@ -1,7 +1,14 @@
 import fs from "node:fs";
 import path from "node:path";
 import Database from "better-sqlite3";
-import { managedGuests, type ManagedGuest, type NewRsvp } from "@/lib/rsvp";
+import {
+  DEFAULT_MEALS,
+  DEFAULT_RSVP_FIELDS,
+  managedGuests,
+  type ManagedGuest,
+  type NewRsvp,
+  type RsvpFieldRules,
+} from "@/lib/rsvp";
 
 export type RsvpRow = {
   id: number;
@@ -21,7 +28,7 @@ const globalForDb = globalThis as unknown as {
   __schemaVersion?: number;
 };
 
-const SCHEMA_VERSION = 9;
+const SCHEMA_VERSION = 12;
 
 function ensureSchema(database: Database.Database) {
   database.exec(`
@@ -82,6 +89,18 @@ function ensureSchema(database: Database.Database) {
       button_enable_at TEXT,
       button_disable_at TEXT
     );
+    CREATE TABLE IF NOT EXISTS meal_options (
+      value TEXT PRIMARY KEY,
+      label TEXT NOT NULL,
+      position INTEGER NOT NULL,
+      active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1))
+    );
+    CREATE TABLE IF NOT EXISTS rsvp_settings (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      first_name_required INTEGER NOT NULL DEFAULT 1 CHECK (first_name_required IN (0, 1)),
+      last_name_required INTEGER NOT NULL DEFAULT 0 CHECK (last_name_required IN (0, 1)),
+      email_required INTEGER NOT NULL DEFAULT 0 CHECK (email_required IN (0, 1))
+    );
   `);
   const columns = database.prepare("PRAGMA table_info(game_settings)").all() as { name: string }[];
   if (!columns.some((column) => column.name === "enabled")) {
@@ -123,6 +142,20 @@ function ensureSchema(database: Database.Database) {
        WHERE NOT EXISTS (SELECT 1 FROM gallery_settings WHERE id = 1)`,
     )
     .run();
+  database
+    .prepare(
+      `INSERT INTO rsvp_settings (id, first_name_required, last_name_required, email_required)
+       SELECT 1, 1, 0, 0
+       WHERE NOT EXISTS (SELECT 1 FROM rsvp_settings WHERE id = 1)`,
+    )
+    .run();
+  const mealCount = database.prepare("SELECT COUNT(*) AS count FROM meal_options").get() as { count: number };
+  if (mealCount.count === 0) {
+    const insertMeal = database.prepare(
+      "INSERT INTO meal_options (value, label, position, active) VALUES (?, ?, ?, 1)",
+    );
+    DEFAULT_MEALS.forEach((meal, index) => insertMeal.run(meal.value, meal.label, index));
+  }
 }
 
 export function getDb() {
@@ -295,4 +328,40 @@ export function deleteRsvp(id: number) {
     return { ok: false as const, error: "Diese Antwort gibt es nicht mehr." };
   }
   return { ok: true as const };
+}
+
+export function getRsvpFieldRules(): RsvpFieldRules {
+  const row = getDb()
+    .prepare(
+      `SELECT first_name_required, last_name_required, email_required
+       FROM rsvp_settings
+       WHERE id = 1`,
+    )
+    .get() as
+    | { first_name_required: number; last_name_required: number; email_required: number }
+    | undefined;
+
+  if (!row) return DEFAULT_RSVP_FIELDS;
+  return {
+    firstNameRequired: row.first_name_required === 1,
+    lastNameRequired: row.last_name_required === 1,
+    emailRequired: row.email_required === 1,
+  };
+}
+
+export function saveRsvpFieldRules(fields: RsvpFieldRules) {
+  getDb()
+    .prepare(
+      `INSERT INTO rsvp_settings (id, first_name_required, last_name_required, email_required)
+       VALUES (1, @firstNameRequired, @lastNameRequired, @emailRequired)
+       ON CONFLICT(id) DO UPDATE SET
+         first_name_required = excluded.first_name_required,
+         last_name_required = excluded.last_name_required,
+         email_required = excluded.email_required`,
+    )
+    .run({
+      firstNameRequired: fields.firstNameRequired ? 1 : 0,
+      lastNameRequired: fields.lastNameRequired ? 1 : 0,
+      emailRequired: fields.emailRequired ? 1 : 0,
+    });
 }

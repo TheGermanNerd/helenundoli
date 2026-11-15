@@ -46,7 +46,7 @@ async function SpielContent() {
             <p className="text-center font-serif text-[0.68rem] font-medium tracking-[0.28em] text-olive uppercase">Mitspielen</p>
             <h1 className="mt-3 text-center font-serif text-4xl text-bronze sm:text-5xl">Spiel</h1>
             <p className="mx-auto mt-4 max-w-md text-center text-ink-soft">
-              Erledige die Aufgaben vor Ort. Punkte gibt es erst, wenn du den QR-Code der Aufgabe scannst und bestätigst.
+              Erledige die Aufgaben vor Ort. Tippe auf eine offene Aufgabe und scanne ihren QR-Code.
             </p>
             <GameProfile name={view.playerName} />
             {view.tasks.length === 0 ? (

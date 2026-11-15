@@ -4,8 +4,9 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { connection } from "next/server";
 import { isAuthenticated } from "@/lib/auth";
-import { listRsvps, summarize } from "@/lib/db";
+import { getRsvpFieldRules, listRsvps, summarize } from "@/lib/db";
 import { getSettings } from "@/lib/game";
+import { listMealCatalog, listMealOptions } from "@/lib/meals";
 import { autoApproveEnabled, gallerySwitches, listPhotos } from "@/lib/photos";
 import { serverUsage } from "@/lib/server-usage";
 import { AdminGame } from "@/components/admin-game";
@@ -65,6 +66,9 @@ async function AdminContent({
         uploadButtonDisableAt={switches.button.disableAt}
         autoApproveEnabled={autoApproveEnabled()}
         gameEnabled={getSettings().enabled}
+        meals={listMealOptions()}
+        fields={getRsvpFieldRules()}
+        mealCatalog={listMealCatalog()}
         game={<AdminGame origin={requestOrigin(headerList)} />}
         usage={serverUsage()}
       />

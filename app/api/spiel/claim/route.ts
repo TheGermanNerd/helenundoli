@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { hasAccess } from "@/lib/access";
-import { claimTask, createPlayer, getClaimPreview, getSettings, PLAYER_COOKIE, playerCookie } from "@/lib/game";
+import { claimTask, createPlayer, getClaimPreview, getSettings, PLAYER_COOKIE, playerCookie, scannedTaskFit } from "@/lib/game";
 import { parseName } from "@/lib/game-input";
 
 const noStore = { "Cache-Control": "no-store" };
@@ -26,6 +26,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Diesen Code kennen wir nicht." }, { status: 404, headers: noStore });
   }
 
+  const expected = readExpectedTaskId(body);
+  if (expected === "invalid") {
+    return NextResponse.json({ error: "Die Aufgabe konnte nicht gelesen werden." }, { status: 400, headers: noStore });
+  }
+  if (typeof expected === "number") {
+    const fit = scannedTaskFit(token, expected);
+    if (fit === "unknown") {
+      return NextResponse.json({ error: "Diesen Code kennen wir nicht." }, { status: 404, headers: noStore });
+    }
+    if (fit === "other") {
+      return NextResponse.json({ error: "Das ist der Code einer anderen Aufgabe." }, { status: 409, headers: noStore });
+    }
+  }
+
   const current = (await cookies()).get(PLAYER_COOKIE)?.value ?? null;
   const preview = getClaimPreview(current, token);
   let playerToken = current;
@@ -44,9 +58,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Bitte zuerst einen Namen eintragen." }, { status: 400, headers: noStore });
   }
 
-  const outcome = claimTask(playerToken, token);
+  const outcome = claimTask(playerToken, token, typeof expected === "number" ? expected : undefined);
   if (outcome.status === "unknown") {
     return NextResponse.json({ error: "Diesen Code kennen wir nicht." }, { status: 404, headers: noStore });
+  }
+  if (outcome.status === "other") {
+    return NextResponse.json({ error: "Das ist der Code einer anderen Aufgabe." }, { status: 409, headers: noStore });
   }
 
   const response = NextResponse.json(
@@ -60,4 +77,11 @@ export async function POST(request: Request) {
 function field(body: unknown, key: string) {
   if (typeof body !== "object" || body === null || !(key in body)) return undefined;
   return (body as Record<string, unknown>)[key];
+}
+
+function readExpectedTaskId(body: unknown) {
+  const value = field(body, "taskId");
+  if (value === undefined) return undefined;
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 1) return "invalid" as const;
+  return value;
 }

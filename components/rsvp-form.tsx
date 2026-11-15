@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { PlaceholderNote } from "@/components/ornaments";
 import { wedding } from "@/lib/content";
-import { MEALS, parseRsvp } from "@/lib/rsvp";
+import { parseRsvp, type MealOption, type RsvpFieldRules } from "@/lib/rsvp";
 
 const fieldClass =
   "mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 text-ink shadow-[0_1px_2px_rgba(74,48,28,0.04)] transition-[border-color,box-shadow] duration-200 focus-visible:border-wine/50";
@@ -25,19 +25,47 @@ function partySize(value: string) {
   return count;
 }
 
+function marked(label: string, required: boolean) {
+  return required ? `${label} *` : label;
+}
+
+function listDe(items: string[]) {
+  if (items.length < 2) return items[0] ?? "";
+  return `${items.slice(0, -1).join(", ")} und ${items[items.length - 1]}`;
+}
+
+function extraGuestNote(fields: RsvpFieldRules) {
+  const requiredNames = [fields.firstNameRequired ? "Vorname" : "", fields.lastNameRequired ? "Nachname" : ""].filter(
+    Boolean,
+  );
+  const optionalNames = [fields.firstNameRequired ? "" : "Vorname", fields.lastNameRequired ? "" : "Nachname"].filter(
+    Boolean,
+  );
+  const required = [...requiredNames, "Menüwunsch"];
+  const duty =
+    required.length === 1
+      ? "Für jede weitere Person ist der Menüwunsch Pflicht."
+      : `Für jede weitere Person sind ${listDe(required)} Pflicht.`;
+  if (optionalNames.length === 0) return duty;
+  if (optionalNames.length === 1) return `${duty} Der ${optionalNames[0]} ist freiwillig.`;
+  return `${duty} ${listDe(optionalNames)} sind freiwillig.`;
+}
+
 function MealField({
   id,
   value,
+  meals,
   onChange,
 }: {
   id: string;
   value: string;
+  meals: readonly MealOption[];
   onChange: (value: string) => void;
 }) {
   return (
     <select id={id} name={id} value={value} onChange={(event) => onChange(event.target.value)} className={fieldClass}>
       <option value="">Bitte wählen</option>
-      {MEALS.map((item) => (
+      {meals.map((item) => (
         <option key={item.value} value={item.value}>
           {item.label}
         </option>
@@ -46,7 +74,7 @@ function MealField({
   );
 }
 
-export function RsvpForm() {
+export function RsvpForm({ meals, fields }: { meals: readonly MealOption[]; fields: RsvpFieldRules }) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -62,11 +90,12 @@ export function RsvpForm() {
   const displayName = [firstName.trim(), lastName.trim()].filter(Boolean).join(" ");
 
   if (done) {
+    const greeting = displayName ? `Danke, ${displayName}.` : "Danke.";
     return (
       <p className="text-center font-serif text-3xl leading-snug text-bronze" role="status">
         {done === "yes"
-          ? `Danke, ${displayName}. Wir haben eure Zusage erhalten und freuen uns auf euch.`
-          : `Danke, ${displayName}. Schade, dass es diesmal nicht klappt. Wir denken an euch.`}
+          ? `${greeting} Wir haben eure Zusage erhalten und freuen uns auf euch.`
+          : `${greeting} Schade, dass es diesmal nicht klappt. Wir denken an euch.`}
       </p>
     );
   }
@@ -94,7 +123,7 @@ export function RsvpForm() {
       message,
       fax,
     };
-    const parsed = parseRsvp(payload);
+    const parsed = parseRsvp(payload, meals, fields);
     if (parsed.status === "error") {
       setError(parsed.error);
       return;
@@ -171,12 +200,13 @@ export function RsvpForm() {
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
           <label htmlFor="first-name" className="text-sm font-medium">
-            Vorname *
+            {marked("Vorname", fields.firstNameRequired)}
           </label>
           <input
             id="first-name"
             name="firstName"
             autoComplete="given-name"
+            required={fields.firstNameRequired}
             value={firstName}
             onChange={(event) => setFirstName(event.target.value)}
             className={fieldClass}
@@ -184,12 +214,13 @@ export function RsvpForm() {
         </div>
         <div>
           <label htmlFor="last-name" className="text-sm font-medium">
-            Nachname
+            {marked("Nachname", fields.lastNameRequired)}
           </label>
           <input
             id="last-name"
             name="lastName"
             autoComplete="family-name"
+            required={fields.lastNameRequired}
             value={lastName}
             onChange={(event) => setLastName(event.target.value)}
             className={fieldClass}
@@ -199,18 +230,23 @@ export function RsvpForm() {
 
       <div>
         <label htmlFor="email" className="text-sm font-medium">
-          E-Mail
+          {marked("E-Mail", fields.emailRequired)}
         </label>
         <input
           id="email"
           name="email"
           type="email"
           autoComplete="email"
+          required={fields.emailRequired}
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           className={fieldClass}
         />
-        <p className="mt-1 text-sm text-ink-soft">Freiwillig.</p>
+        {fields.emailRequired ? null : (
+          <p className="mt-1 text-sm text-ink-soft">
+            Freiwillig. Wenn ihr eine E-Mail angebt, schicken wir euch eine Bestätigungsmail.
+          </p>
+        )}
       </div>
 
       <fieldset>
@@ -263,17 +299,15 @@ export function RsvpForm() {
               <label htmlFor="meal" className="text-sm font-medium">
                 {several ? "Menüwunsch Gast 1 *" : "Menüwunsch *"}
               </label>
-              <MealField id="meal" value={meal} onChange={setMeal} />
+              <MealField id="meal" value={meal} meals={meals} onChange={setMeal} />
               {several ? (
-                <p className="mt-1 text-sm text-ink-soft">{displayName ? `Für ${displayName}.` : "Für den Vornamen oben."}</p>
+                <p className="mt-1 text-sm text-ink-soft">{displayName ? `Für ${displayName}.` : "Für den Namen oben."}</p>
               ) : null}
             </div>
           </div>
           {several && count ? (
             <div className="space-y-4">
-              <p className="text-sm text-ink-soft">
-                Für jede weitere Person sind Vorname und Menüwunsch Pflicht. Der Nachname ist freiwillig.
-              </p>
+              <p className="text-sm text-ink-soft">{extraGuestNote(fields)}</p>
               {Array.from({ length: count - 1 }, (_, index) => {
                 const guest = companions[index] ?? emptyGuest();
                 const number = index + 2;
@@ -283,12 +317,13 @@ export function RsvpForm() {
                     <div className="grid gap-5 sm:grid-cols-2">
                       <div>
                         <label htmlFor={`guest-${number}-first`} className="text-sm font-medium">
-                          Vorname *
+                          {marked("Vorname", fields.firstNameRequired)}
                         </label>
                         <input
                           id={`guest-${number}-first`}
                           name={`guest-${number}-first`}
                           autoComplete="off"
+                          required={fields.firstNameRequired}
                           value={guest.firstName}
                           onChange={(event) => updateCompanion(index, { firstName: event.target.value })}
                           className={fieldClass}
@@ -296,12 +331,13 @@ export function RsvpForm() {
                       </div>
                       <div>
                         <label htmlFor={`guest-${number}-last`} className="text-sm font-medium">
-                          Nachname
+                          {marked("Nachname", fields.lastNameRequired)}
                         </label>
                         <input
                           id={`guest-${number}-last`}
                           name={`guest-${number}-last`}
                           autoComplete="off"
+                          required={fields.lastNameRequired}
                           value={guest.lastName}
                           onChange={(event) => updateCompanion(index, { lastName: event.target.value })}
                           className={fieldClass}
@@ -315,6 +351,7 @@ export function RsvpForm() {
                       <MealField
                         id={`guest-${number}-meal`}
                         value={guest.meal}
+                        meals={meals}
                         onChange={(value) => updateCompanion(index, { meal: value })}
                       />
                     </div>

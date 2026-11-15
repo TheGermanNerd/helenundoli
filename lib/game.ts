@@ -67,6 +67,7 @@ export type ClaimPreview =
 
 export type ClaimOutcome =
   | { status: "unknown" }
+  | { status: "other" }
   | { status: "ok" | "already"; title: string; points: number; score: number };
 
 type TaskRow = {
@@ -148,10 +149,18 @@ export function getClaimPreview(playerToken: string | null, taskToken: string): 
   };
 }
 
-export function claimTask(playerToken: string, taskToken: string): ClaimOutcome {
+export function scannedTaskFit(taskToken: string, expectedTaskId: number): "unknown" | "other" | "match" {
+  const task = findTaskByToken(taskToken);
+  if (!task) return "unknown";
+  if (task.id !== expectedTaskId) return "other";
+  return "match";
+}
+
+export function claimTask(playerToken: string, taskToken: string, expectedTaskId?: number): ClaimOutcome {
   const task = findTaskByToken(taskToken);
   const player = getPlayerByToken(playerToken);
   if (!task || !player) return { status: "unknown" };
+  if (expectedTaskId !== undefined && task.id !== expectedTaskId) return { status: "other" };
 
   try {
     getDb()
