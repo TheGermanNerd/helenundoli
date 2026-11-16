@@ -18,6 +18,7 @@ export type RsvpRow = {
   guest_count: number;
   guest_names: string | null;
   meal: string | null;
+  events: string | null;
   message: string | null;
   guest_flags: string | null;
   created_at: string;
@@ -28,7 +29,7 @@ const globalForDb = globalThis as unknown as {
   __schemaVersion?: number;
 };
 
-const SCHEMA_VERSION = 17;
+const SCHEMA_VERSION = 18;
 
 function ensureSchema(database: Database.Database) {
   database.exec(`
@@ -133,6 +134,9 @@ function ensureSchema(database: Database.Database) {
   if (!rsvpColumns.some((column) => column.name === "guest_flags")) {
     database.exec("ALTER TABLE rsvps ADD COLUMN guest_flags TEXT");
   }
+  if (!rsvpColumns.some((column) => column.name === "events")) {
+    database.exec("ALTER TABLE rsvps ADD COLUMN events TEXT");
+  }
   const siteColumns = database.prepare("PRAGMA table_info(site_settings)").all() as { name: string }[];
   const hasAccessHours = siteColumns.some((column) => column.name === "access_hours");
   if (!siteColumns.some((column) => column.name === "access_minutes")) {
@@ -205,9 +209,9 @@ export function insertRsvp(rsvp: NewRsvp) {
   getDb()
     .prepare(
       `INSERT INTO rsvps
-        (name, email, attending, guest_count, guest_names, meal, message, created_at)
+        (name, email, attending, guest_count, guest_names, meal, events, message, created_at)
        VALUES
-        (@name, @email, @attending, @guestCount, @guestNames, @meal, @message, @createdAt)`,
+        (@name, @email, @attending, @guestCount, @guestNames, @meal, @events, @message, @createdAt)`,
     )
     .run({
       name: rsvp.name,
@@ -216,6 +220,7 @@ export function insertRsvp(rsvp: NewRsvp) {
       guestCount: rsvp.guestCount,
       guestNames: rsvp.guestNames,
       meal: rsvp.meal,
+      events: rsvp.events,
       message: rsvp.message,
       createdAt: new Date().toISOString(),
     });
@@ -232,6 +237,7 @@ export function summarize() {
   let yes = 0;
   let no = 0;
   let people = 0;
+  let ceremony = 0;
 
   for (const row of rows) {
     const guests = managedGuests(row);
@@ -245,10 +251,11 @@ export function summarize() {
     const coming = guests.length - declined;
     no += declined;
     people += coming;
+    ceremony += guests.filter((guest) => guest.attending && guest.event === "both").length;
     if (coming > 0) yes += 1;
   }
 
-  return { yes, no, people };
+  return { yes, no, people, ceremony };
 }
 
 function getRsvp(id: number) {
@@ -258,6 +265,10 @@ function getRsvp(id: number) {
 function mealValue(guests: ManagedGuest[]) {
   if (guests.length === 1) return guests[0].meal;
   return JSON.stringify(guests.map((guest) => guest.meal));
+}
+
+function eventValue(guests: ManagedGuest[]) {
+  return JSON.stringify(guests.map((guest) => guest.event));
 }
 
 function writeAttendance(id: number, guests: ManagedGuest[]) {
@@ -281,7 +292,7 @@ function writeGuests(id: number, guests: ManagedGuest[]) {
   getDb()
     .prepare(
       `UPDATE rsvps
-       SET guest_names = @guestNames, meal = @meal, guest_flags = @flags,
+       SET guest_names = @guestNames, meal = @meal, events = @events, guest_flags = @flags,
            guest_count = @guestCount, attending = @attending
        WHERE id = @id`,
     )
@@ -289,6 +300,7 @@ function writeGuests(id: number, guests: ManagedGuest[]) {
       id,
       guestNames: guests.map((guest) => guest.name).join("\n"),
       meal: mealValue(guests),
+      events: eventValue(guests),
       flags: JSON.stringify(guests.map((guest) => guest.attending)),
       guestCount: coming,
       attending: coming > 0 ? 1 : 0,

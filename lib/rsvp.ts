@@ -28,10 +28,13 @@ export const DEFAULT_RSVP_FIELDS: RsvpFieldRules = {
 
 export type Meal = string;
 
+export type EventChoice = "both" | "party";
+
 export type Guest = {
   firstName: string;
   lastName: string;
   meal: Meal;
+  event: EventChoice;
 };
 
 export type NewRsvp = {
@@ -41,6 +44,7 @@ export type NewRsvp = {
   guestCount: number;
   guestNames: string | null;
   meal: string | null;
+  events: string | null;
   message: string | null;
 };
 
@@ -80,6 +84,12 @@ function isOfferedMeal(value: string, meals: readonly MealOption[]) {
 
 function mealName(value: string, meals: readonly MealOption[]) {
   return meals.find((meal) => meal.value === value)?.label ?? (readStoredMeal(value) ? value : null);
+}
+
+export function eventLabel(value: string | null) {
+  if (value === "both") return "Standesamt und Party";
+  if (value === "party") return "Nur Party";
+  return "—";
 }
 
 export function mealLabel(value: string | null, meals: readonly MealOption[]) {
@@ -164,6 +174,7 @@ export type ManagedGuest = {
   name: string;
   meal: Meal | null;
   attending: boolean;
+  event: EventChoice | null;
 };
 
 export type GuestSource = {
@@ -171,6 +182,7 @@ export type GuestSource = {
   guest_count: number;
   guest_names: string | null;
   meal: string | null;
+  events: string | null;
   guest_flags: string | null;
 };
 
@@ -197,6 +209,28 @@ function splitGuestNames(raw: string | null, expected: number) {
   const commas = value.split(",").map((part) => part.trim()).filter(Boolean);
   if (commas.length > 1 && (expected <= 0 || commas.length === expected)) return commas;
   return [value];
+}
+
+function isEventChoice(value: unknown): value is EventChoice {
+  return value === "both" || value === "party";
+}
+
+function eventsForCount(value: string | null, count: number): (EventChoice | null)[] {
+  if (count === 0 || !value) return Array.from({ length: count }, () => null);
+
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (Array.isArray(parsed)) {
+      return Array.from({ length: count }, (_, index) => {
+        const item = parsed[index];
+        return isEventChoice(item) ? item : null;
+      });
+    }
+  } catch {
+    // Older answers have no event choice.
+  }
+
+  return Array.from({ length: count }, () => null);
 }
 
 function mealsForCount(value: string | null, count: number): (Meal | null)[] {
@@ -226,10 +260,12 @@ export function managedGuests(row: GuestSource): ManagedGuest[] {
   if (names.length === 0) return [];
 
   const meals = mealsForCount(row.meal, names.length);
+  const events = eventsForCount(row.events, names.length);
   const aligned = flags && flags.length === names.length ? flags : null;
   return names.map((name, index) => ({
     name,
     meal: meals[index] ?? null,
+    event: events[index] ?? null,
     attending: aligned ? aligned[index] : row.attending === 1,
   }));
 }
@@ -247,6 +283,10 @@ export function exportGuestNames(guests: ManagedGuest[]) {
   return guests.map((guest) => (guest.attending ? guest.name : `${guest.name} (abgesagt)`)).join("\n");
 }
 
+export function exportEvents(guests: ManagedGuest[]) {
+  return guests.map((guest) => eventLabel(guest.event)).join("\n");
+}
+
 function guestLine(guest: Guest) {
   return [guest.firstName, guest.lastName].filter(Boolean).join(" ");
 }
@@ -256,7 +296,7 @@ function readGuests(
   guestCount: number,
   meals: readonly MealOption[],
   fields: RsvpFieldRules,
-): { ok: false; error: string } | { ok: true; guestNames: string; meal: string } {
+): { ok: false; error: string } | { ok: true; guestNames: string; meal: string; events: string } {
   const raw = input.guests;
   if (!Array.isArray(raw) || raw.length !== guestCount) {
     return { ok: false, error: "Bitte gebt für jede Person einen Menüwunsch an." };
@@ -289,7 +329,15 @@ function readGuests(
       return { ok: false, error: `Bitte wählt ein Menü für Gast ${index + 1}.` };
     }
 
-    guests.push({ firstName, lastName, meal });
+    const event = item.event;
+    if (!isEventChoice(event)) {
+      return {
+        ok: false,
+        error: `Bitte sagt uns für Gast ${index + 1}, ob die Person zum Standesamt und zur Party kommt oder nur zur Party.`,
+      };
+    }
+
+    guests.push({ firstName, lastName, meal, event });
   }
 
   const guestNames = guests.map(guestLine).join("\n");
@@ -301,6 +349,7 @@ function readGuests(
     ok: true,
     guestNames,
     meal: guests.length === 1 ? guests[0].meal : JSON.stringify(guests.map((guest) => guest.meal)),
+    events: JSON.stringify(guests.map((guest) => guest.event)),
   };
 }
 
@@ -360,6 +409,7 @@ export function parseRsvp(
         guestCount: 0,
         guestNames: null,
         meal: null,
+        events: null,
         message: message || null,
       },
     };
@@ -384,6 +434,7 @@ export function parseRsvp(
       guestCount,
       guestNames: guests.guestNames,
       meal: guests.meal,
+      events: guests.events,
       message: message || null,
     },
   };

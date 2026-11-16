@@ -3,14 +3,14 @@ import { isAuthenticated } from "@/lib/auth";
 import { listRsvps } from "@/lib/db";
 import { csvEscape, formatTimestamp } from "@/lib/format";
 import { listMealCatalog } from "@/lib/meals";
-import { attendingMealLabel, exportGuestNames, managedGuests, mealLabel } from "@/lib/rsvp";
+import { attendingMealLabel, exportEvents, exportGuestNames, managedGuests, mealLabel } from "@/lib/rsvp";
 
 export async function GET() {
   if (!(await isAuthenticated())) {
     return NextResponse.json({ error: "Bitte zuerst anmelden." }, { status: 401 });
   }
 
-  const header = ["Name", "E-Mail", "Teilnahme", "Anzahl", "Gästenamen", "Menü", "Nachricht", "Zeitpunkt"];
+  const header = ["Name", "E-Mail", "Teilnahme", "Anzahl", "Gästenamen", "Dabei", "Menü", "Nachricht", "Zeitpunkt"];
   const meals = listMealCatalog();
   const lines = listRsvps().map((row) => {
     const guests = managedGuests(row);
@@ -22,6 +22,7 @@ export async function GET() {
       attending ? "Zusage" : "Absage",
       guests.length === 0 ? (row.attending ? String(row.guest_count) : "") : String(coming),
       guests.length === 0 ? (row.guest_names ?? "") : exportGuestNames(guests),
+      guests.length === 0 ? "" : exportEvents(guests),
       attending ? (guests.length === 0 ? mealLabel(row.meal, meals) : attendingMealLabel(guests, meals)) : "",
       row.message ?? "",
       formatTimestamp(row.created_at),

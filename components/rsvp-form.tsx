@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { wedding } from "@/lib/content";
-import { parseRsvp, type MealOption, type RsvpFieldRules } from "@/lib/rsvp";
+import { parseRsvp, type EventChoice, type MealOption, type RsvpFieldRules } from "@/lib/rsvp";
 
 const fieldClass =
   "mt-2 w-full rounded-xl border border-line bg-cream px-4 py-3 text-ink shadow-[0_1px_2px_rgba(74,48,28,0.04)] transition-[border-color,box-shadow] duration-200 focus-visible:border-wine/50";
@@ -11,10 +11,11 @@ type ExtraGuest = {
   firstName: string;
   lastName: string;
   meal: string;
+  event: "" | EventChoice;
 };
 
 function emptyGuest(): ExtraGuest {
-  return { firstName: "", lastName: "", meal: "" };
+  return { firstName: "", lastName: "", meal: "", event: "" };
 }
 
 function partySize(value: string) {
@@ -73,6 +74,46 @@ function MealField({
   );
 }
 
+const eventOptions = [
+  ["both", "Standesamt und Party"],
+  ["party", "Nur Party"],
+] as const;
+
+function EventField({
+  name,
+  legend,
+  value,
+  onChange,
+}: {
+  name: string;
+  legend: string;
+  value: string;
+  onChange: (value: EventChoice) => void;
+}) {
+  return (
+    <fieldset>
+      <legend className="text-sm font-medium">{legend}</legend>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        {eventOptions.map(([option, label]) => (
+          <label
+            key={option}
+            className={`choice flex cursor-pointer items-center justify-center rounded-xl border px-4 py-3.5 text-center transition duration-200 ${value === option ? "border-wine bg-wine text-paper shadow-[0_10px_24px_-16px_rgba(122,46,42,0.85)]" : "border-line bg-cream text-ink hover:border-wine/35 hover:bg-white"}`}
+          >
+            <input
+              className="sr-only"
+              type="radio"
+              name={name}
+              checked={value === option}
+              onChange={() => onChange(option)}
+            />
+            {label}
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
 export function RsvpForm({ meals, fields }: { meals: readonly MealOption[]; fields: RsvpFieldRules }) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -80,6 +121,7 @@ export function RsvpForm({ meals, fields }: { meals: readonly MealOption[]; fiel
   const [attending, setAttending] = useState<boolean | null>(null);
   const [guestCount, setGuestCount] = useState("1");
   const [meal, setMeal] = useState("");
+  const [eventChoice, setEventChoice] = useState<"" | EventChoice>("");
   const [companions, setCompanions] = useState<ExtraGuest[]>([]);
   const [message, setMessage] = useState("");
   const [fax, setFax] = useState("");
@@ -107,7 +149,7 @@ export function RsvpForm({ meals, fields }: { meals: readonly MealOption[]; fiel
     const guests =
       attending && count
         ? [
-            { firstName, lastName, meal },
+            { firstName, lastName, meal, event: eventChoice },
             ...Array.from({ length: count - 1 }, (_, index) => companions[index] ?? emptyGuest()),
           ]
         : [];
@@ -303,6 +345,12 @@ export function RsvpForm({ meals, fields }: { meals: readonly MealOption[]; fiel
               ) : null}
             </div>
           </div>
+          <EventField
+            name="event"
+            legend={several ? "Wo ist Gast 1 dabei? *" : "Wo bist du dabei? *"}
+            value={eventChoice}
+            onChange={setEventChoice}
+          />
           {several && count ? (
             <div className="space-y-4">
               <p className="text-sm text-ink-soft">{extraGuestNote(fields)}</p>
@@ -351,6 +399,14 @@ export function RsvpForm({ meals, fields }: { meals: readonly MealOption[]; fiel
                         value={guest.meal}
                         meals={meals}
                         onChange={(value) => updateCompanion(index, { meal: value })}
+                      />
+                    </div>
+                    <div className="mt-4">
+                      <EventField
+                        name={`guest-${number}-event`}
+                        legend={`Wo ist Gast ${number} dabei? *`}
+                        value={guest.event}
+                        onChange={(value) => updateCompanion(index, { event: value })}
                       />
                     </div>
                   </fieldset>

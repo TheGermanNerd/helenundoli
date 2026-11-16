@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { RsvpRow } from "@/lib/db";
-import { managedGuests, mealLabel, type MealOption } from "@/lib/rsvp";
+import { eventLabel, managedGuests, mealLabel, type MealOption } from "@/lib/rsvp";
 
 type AdminRow = RsvpRow & { received: string };
 
@@ -11,6 +11,7 @@ type Stats = {
   yes: number;
   no: number;
   people: number;
+  ceremony: number;
 };
 
 type SaveBody =
@@ -70,11 +71,12 @@ export function AdminRsvps({
 
   return (
     <div>
-      <dl className="grid grid-cols-3 gap-3">
+      <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
           ["Zusagen", stats.yes],
           ["Absagen", stats.no],
           ["Personen", stats.people],
+          ["Standesamt", stats.ceremony],
         ].map(([label, value]) => (
           <div key={label} className="border border-line bg-paper px-4 py-4">
             <dt className="text-xs font-medium uppercase tracking-[0.16em] text-olive">{label}</dt>
@@ -83,7 +85,8 @@ export function AdminRsvps({
         ))}
       </dl>
       <p className="mt-3 text-sm text-ink-soft">
-        Absagen zählt einzelne Gäste, die abgesagt haben. Personen zählt, wer noch kommt.
+        Absagen zählt einzelne Gäste, die abgesagt haben. Personen zählt, wer zur Party kommt.
+        Standesamt zählt, wer zur Trauung und zur Party kommt.
       </p>
       {error ? (
         <p role="alert" className="mt-4 border border-wine/30 bg-wine/5 px-3 py-2 text-wine">
@@ -151,7 +154,7 @@ function GuestTable({
         <p className="mt-6 font-serif text-2xl text-ink-soft">Keine passenden Gäste.</p>
       ) : (
         <div className="mt-3 overflow-x-auto border border-line bg-paper print:mt-0">
-          <table className="w-full min-w-[58rem] text-left text-sm">
+          <table className="w-full min-w-[70rem] text-left text-sm">
             <caption className="sr-only">Eingegangene Antworten</caption>
             <thead className="border-b border-line text-xs uppercase tracking-[0.14em] text-olive">
               <tr>
@@ -163,6 +166,7 @@ function GuestTable({
                 <th className="px-3 py-3 font-medium">Teilnahme</th>
                 <th className="px-3 py-3 font-medium">Personen</th>
                 <th className="px-3 py-3 font-medium">Gäste</th>
+                <th className="px-3 py-3 font-medium">Dabei</th>
                 <th className="px-3 py-3 font-medium">Menü</th>
                 <th className="px-3 py-3 font-medium">Nachricht</th>
                 <th className="px-3 py-3 font-medium">Eingegangen</th>
@@ -300,6 +304,31 @@ function GuestTable({
                                 </li>
                               );
                             })}
+                          </ul>
+                        </>
+                      )}
+                    </td>
+                    <td className="px-3 py-3 whitespace-nowrap">
+                      {guests.length === 0 ? (
+                        "—"
+                      ) : (
+                        <>
+                          {collapsed ? (
+                            <p className="line-clamp-1 print:hidden">
+                              <span className={guests[0].attending ? undefined : "text-ink-soft line-through"}>
+                                {eventLabel(guests[0].event)}
+                              </span>
+                            </p>
+                          ) : null}
+                          <ul className={collapsed ? "hidden print:block" : undefined}>
+                            {guests.map((guest, index) => (
+                              <li
+                                key={`${row.id}:event:${index}`}
+                                className={`flex h-9 items-center border-b border-line/50 last:border-b-0 ${guest.attending ? "" : "text-ink-soft line-through"}`}
+                              >
+                                {eventLabel(guest.event)}
+                              </li>
+                            ))}
                           </ul>
                         </>
                       )}

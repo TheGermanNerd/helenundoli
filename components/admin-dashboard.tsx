@@ -14,6 +14,7 @@ type Stats = {
   yes: number;
   no: number;
   people: number;
+  ceremony: number;
 };
 
 export function AdminDashboard({
