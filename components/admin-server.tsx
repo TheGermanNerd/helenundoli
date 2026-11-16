@@ -213,23 +213,7 @@ function GithubSection() {
       ) : null}
 
       {running ? (
-        <p className="mt-3 text-sm text-ink-soft">
-          {updatePhases.map(([phase, label], index) => {
-            const current = info?.update.phase === phase || (info?.update.state === "restarting" && phase === "restart");
-            return (
-              <span key={phase}>
-                {index > 0 ? " · " : null}
-                <span className={current ? "text-wine" : undefined}>{label}</span>
-              </span>
-            );
-          })}
-        </p>
-      ) : null}
-
-      {info?.update.logTail ? (
-        <pre className="mt-3 max-h-48 overflow-auto border border-line bg-cream px-3 py-2 font-mono text-xs break-words whitespace-pre-wrap text-ink-soft">
-          {info.update.logTail}
-        </pre>
+        <UpdateBar phase={info?.update.state === "restarting" ? "restart" : (info?.update.phase ?? "fetch")} />
       ) : null}
     </section>
   );
@@ -301,6 +285,38 @@ export function AdminServer({ usage }: { usage: ServerUsage }) {
         </p>
         <Meter used={usage.cpu.load} total={usage.cpu.cores} label="Prozessorlast" />
       </section>
+    </div>
+  );
+}
+
+function UpdateBar({ phase }: { phase: DeployPhase }) {
+  const index = Math.max(
+    0,
+    updatePhases.findIndex(([name]) => name === phase),
+  );
+  const percent = Math.round(((index + 1) / updatePhases.length) * 100);
+  const label = updatePhases[index]?.[1] ?? "Aktualisierung";
+
+  return (
+    <div className="mt-4">
+      <div
+        className="h-2 bg-line"
+        role="progressbar"
+        aria-label="Fortschritt der Aktualisierung"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={percent}
+        aria-valuetext={label}
+      >
+        <div className="h-full bg-wine transition-[width] duration-500 ease-out" style={{ width: `${percent}%` }} />
+      </div>
+      <p className="mt-2 flex justify-between gap-2 text-xs text-ink-soft">
+        {updatePhases.map(([name, text], step) => (
+          <span key={name} className={step === index ? "text-wine" : step < index ? "text-ink" : undefined}>
+            {text}
+          </span>
+        ))}
+      </p>
     </div>
   );
 }

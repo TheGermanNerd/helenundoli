@@ -27,7 +27,6 @@ export type DeployInfo = {
     message: string | null;
     startedAt: string | null;
     finishedAt: string | null;
-    logTail: string;
   };
 };
 
@@ -196,14 +195,6 @@ function updating(stored: StoredUpdate | null) {
   return stored.scriptPid === null && fresh(stored.startedAt);
 }
 
-function readLogTail() {
-  try {
-    return fs.readFileSync(dataPath("update.log"), "utf8").split(/\r?\n/).slice(-40).join("\n").trim().slice(-4000);
-  } catch {
-    return "";
-  }
-}
-
 function currentDir() {
   const cwd = process.cwd();
   return cwd.endsWith("/") || cwd.endsWith("\\") ? cwd.slice(0, -1) : cwd;
@@ -230,7 +221,6 @@ export function deployInfo(): DeployInfo {
           message: stored.message,
           startedAt: stored.startedAt,
           finishedAt: stored.finishedAt,
-          logTail: readLogTail(),
         }
       : {
           state: "idle",
@@ -238,7 +228,6 @@ export function deployInfo(): DeployInfo {
           message: null,
           startedAt: null,
           finishedAt: null,
-          logTail: readLogTail(),
         },
   };
 }
