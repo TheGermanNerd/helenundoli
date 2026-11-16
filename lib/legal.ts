@@ -24,7 +24,7 @@ export const storageNotes = [
     name: ACCESS_COOKIE,
     where: "Cookie",
     purpose: "Merkt sich, dass der Zugangscode eingegeben wurde, damit die Einladung geöffnet bleibt.",
-    duration: "Ein Jahr",
+    duration: "So lange, wie die Dauer in den Einstellungen gesetzt ist, höchstens 24 Stunden",
   },
   {
     name: PLAYER_COOKIE,

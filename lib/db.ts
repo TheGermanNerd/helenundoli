@@ -28,7 +28,7 @@ const globalForDb = globalThis as unknown as {
   __schemaVersion?: number;
 };
 
-const SCHEMA_VERSION = 14;
+const SCHEMA_VERSION = 17;
 
 function ensureSchema(database: Database.Database) {
   database.exec(`
@@ -103,7 +103,8 @@ function ensureSchema(database: Database.Database) {
     );
     CREATE TABLE IF NOT EXISTS site_settings (
       id INTEGER PRIMARY KEY CHECK (id = 1),
-      save_the_date INTEGER NOT NULL DEFAULT 1 CHECK (save_the_date IN (0, 1))
+      save_the_date INTEGER NOT NULL DEFAULT 1 CHECK (save_the_date IN (0, 1)),
+      access_minutes INTEGER NOT NULL DEFAULT 1440 CHECK (access_minutes BETWEEN 1 AND 1440)
     );
   `);
   const columns = database.prepare("PRAGMA table_info(game_settings)").all() as { name: string }[];
@@ -132,6 +133,18 @@ function ensureSchema(database: Database.Database) {
   if (!rsvpColumns.some((column) => column.name === "guest_flags")) {
     database.exec("ALTER TABLE rsvps ADD COLUMN guest_flags TEXT");
   }
+  const siteColumns = database.prepare("PRAGMA table_info(site_settings)").all() as { name: string }[];
+  const hasAccessHours = siteColumns.some((column) => column.name === "access_hours");
+  if (!siteColumns.some((column) => column.name === "access_minutes")) {
+    database.exec(
+      "ALTER TABLE site_settings ADD COLUMN access_minutes INTEGER NOT NULL DEFAULT 1440 CHECK (access_minutes BETWEEN 1 AND 525600)",
+    );
+  }
+  if (hasAccessHours) {
+    database.exec("UPDATE site_settings SET access_minutes = MIN(access_hours * 60, 1440)");
+    database.exec("ALTER TABLE site_settings DROP COLUMN access_hours");
+  }
+  database.exec("UPDATE site_settings SET access_minutes = 1440 WHERE access_minutes > 1440");
   database
     .prepare(
       `INSERT INTO game_settings (id, prize_title, prize_text, goal_points)

@@ -1,11 +1,13 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { ACCESS_COOKIE } from "@/lib/legal";
+import { accessTimeoutMinutes } from "@/lib/site-settings";
 
 export { ACCESS_COOKIE };
 
 const TOKEN_PAYLOAD = "oli-helen-guest-v1";
-const MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
+const MAX_AGE_SECONDS = 60 * 60 * 24;
+const CLOCK_SKEW_SECONDS = 60;
 
 function accessCode() {
   const value = process.env.SITE_ACCESS_CODE?.trim();
@@ -29,6 +31,12 @@ export function accessToken() {
   return createHmac("sha256", normalize(code)).update(TOKEN_PAYLOAD).digest("base64url");
 }
 
+function signatureFor(issuedAt: number) {
+  const code = accessCode();
+  if (!code) return null;
+  return createHmac("sha256", normalize(code)).update(`${TOKEN_PAYLOAD}.${issuedAt}`).digest("base64url");
+}
+
 export function checkAccessCode(input: string) {
   const code = accessCode();
   if (!code) return "missing" as const;
@@ -36,12 +44,13 @@ export function checkAccessCode(input: string) {
 }
 
 export function accessCookie() {
-  const token = accessToken();
-  if (!token) return null;
+  const issuedAt = Math.floor(Date.now() / 1000);
+  const signature = signatureFor(issuedAt);
+  if (!signature) return null;
 
   return {
     name: ACCESS_COOKIE,
-    value: token,
+    value: `${issuedAt}.${signature}`,
     httpOnly: true,
     sameSite: "lax" as const,
     secure: process.env.NODE_ENV === "production",
@@ -55,5 +64,21 @@ export async function hasAccess() {
   if (!token) return false;
   const current = (await cookies()).get(ACCESS_COOKIE)?.value;
   if (!current) return false;
-  return safeEqual(current, token);
+  if (safeEqual(current, token)) return true;
+  return withinTimeout(current);
+}
+
+function withinTimeout(current: string) {
+  const dot = current.indexOf(".");
+  if (dot <= 0) return false;
+  const issuedRaw = current.slice(0, dot);
+  const signature = current.slice(dot + 1);
+  if (!/^[1-9]\d{0,15}$/.test(issuedRaw)) return false;
+  const issuedAt = Number(issuedRaw);
+  if (!Number.isSafeInteger(issuedAt)) return false;
+  const expected = signatureFor(issuedAt);
+  if (!expected || !safeEqual(signature, expected)) return false;
+  const age = Math.floor(Date.now() / 1000) - issuedAt;
+  if (age < -CLOCK_SKEW_SECONDS) return false;
+  return age < accessTimeoutMinutes() * 60;
 }

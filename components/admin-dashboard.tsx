@@ -29,6 +29,7 @@ export function AdminDashboard({
   uploadButtonDisableAt,
   autoApproveEnabled,
   saveTheDateEnabled,
+  accessTimeoutMinutes,
   gameEnabled,
   meals,
   fields,
@@ -48,6 +49,7 @@ export function AdminDashboard({
   uploadButtonDisableAt: string | null;
   autoApproveEnabled: boolean;
   saveTheDateEnabled: boolean;
+  accessTimeoutMinutes: number;
   gameEnabled: boolean;
   meals: MealOption[];
   fields: RsvpFieldRules;
@@ -82,6 +84,7 @@ export function AdminDashboard({
       settings={
         <AdminSettings
           saveTheDateEnabled={saveTheDateEnabled}
+          accessTimeoutMinutes={accessTimeoutMinutes}
           photosEnabled={galleryEnabled}
           photosEnableAt={galleryEnableAt}
           photosDisableAt={galleryDisableAt}

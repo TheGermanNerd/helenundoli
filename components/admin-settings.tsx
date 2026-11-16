@@ -15,6 +15,7 @@ type SwitchProps = {
 
 export function AdminSettings({
   saveTheDateEnabled,
+  accessTimeoutMinutes,
   photosEnabled,
   photosEnableAt,
   photosDisableAt,
@@ -26,6 +27,7 @@ export function AdminSettings({
   fields,
 }: {
   saveTheDateEnabled: boolean;
+  accessTimeoutMinutes: number;
   photosEnabled: boolean;
   photosEnableAt: string | null;
   photosDisableAt: string | null;
@@ -39,6 +41,7 @@ export function AdminSettings({
   return (
     <div className="space-y-10">
       <SaveTheDateVisibility enabled={saveTheDateEnabled} />
+      <AccessTimeout minutes={accessTimeoutMinutes} />
       <RequiredFields fields={fields} />
       <MealOptions meals={meals} />
       <VisibilityCard
@@ -504,6 +507,61 @@ function SaveTheDateVisibility({ enabled }: { enabled: boolean }) {
       </button>
     </form>
   );
+}
+
+function AccessTimeout({ minutes }: { minutes: number }) {
+  const { post, pending, error } = useAdminPost("/api/admin/site");
+  const [draft, setDraft] = useState(String(minutes));
+
+  useEffect(() => {
+    setDraft(String(minutes));
+  }, [minutes]);
+
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        void post({ action: "setAccessTimeout", minutes: Number(draft) });
+      }}
+      className="border border-line bg-paper px-4 py-4"
+    >
+      <h2 className="font-serif text-3xl text-bronze">Zugangscode</h2>
+      <p className="mt-2 text-sm text-ink-soft">
+        Wie lange der Code gültig bleibt, nachdem ihn jemand eingegeben hat. Danach muss er neu eingegeben werden.
+        Möglich sind 1 bis 1440 Minuten, also höchstens 24 Stunden.
+      </p>
+      <p className="mt-3 text-sm">{timeoutStatus(minutes)}</p>
+      <label htmlFor="access-minutes" className="mt-4 block text-sm font-medium">
+        Minuten
+      </label>
+      <input
+        id="access-minutes"
+        type="number"
+        inputMode="numeric"
+        min={1}
+        max={1440}
+        step={1}
+        required
+        value={draft}
+        disabled={pending}
+        onChange={(event) => setDraft(event.target.value)}
+        className={fieldClass}
+      />
+      {error ? <ErrorNote message={error} /> : null}
+      <button
+        type="submit"
+        disabled={pending}
+        className="mt-4 rounded-xl bg-wine px-4 py-2 text-sm text-paper hover:bg-wine-deep disabled:opacity-60"
+      >
+        {pending ? "Wird gespeichert…" : "Dauer speichern"}
+      </button>
+    </form>
+  );
+}
+
+function timeoutStatus(minutes: number) {
+  if (minutes === 1) return "Der Code bleibt 1 Minute gültig.";
+  return `Der Code bleibt ${minutes} Minuten gültig.`;
 }
 
 function GameVisibility({ enabled }: { enabled: boolean }) {
