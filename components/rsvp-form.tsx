@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { PlaceholderNote } from "@/components/ornaments";
 import { wedding } from "@/lib/content";
 import { parseRsvp, type MealOption, type RsvpFieldRules } from "@/lib/rsvp";
 
@@ -174,7 +173,6 @@ export function RsvpForm({ meals, fields }: { meals: readonly MealOption[]; fiel
         <p className="mx-auto mt-6 max-w-md text-lg leading-relaxed text-ink-soft">
           Bitte sagt uns bis zum {wedding.replyBy} Bescheid, ob ihr dabei seid.
         </p>
-        <PlaceholderNote>Platzhalterdatum</PlaceholderNote>
       </div>
       <form onSubmit={onSubmit} noValidate className="mt-10 space-y-6">
         <p className="text-sm text-ink-soft">Pflichtfelder sind mit * markiert.</p>
@@ -375,7 +373,7 @@ export function RsvpForm({ meals, fields }: { meals: readonly MealOption[]; fiel
           onChange={(event) => setMessage(event.target.value)}
           className={fieldClass}
         />
-        <p className="mt-1 text-sm text-ink-soft">Allergien, Liedwünsche oder ein Gruß.</p>
+        <p className="mt-1 text-sm text-ink-soft">Allergien, Anreise oder ein Gruß.</p>
       </div>
 
       <button

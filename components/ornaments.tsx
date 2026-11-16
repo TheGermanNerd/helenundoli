@@ -1,13 +1,5 @@
 import Image from "next/image";
 
-export function PlaceholderNote({ children }: { children: string }) {
-  return (
-    <span className="mt-3 inline-block border border-ochre/50 px-2 py-0.5 text-[0.68rem] font-medium uppercase tracking-[0.18em] text-ochre">
-      {children}
-    </span>
-  );
-}
-
 export function GoldFrame() {
   return (
     <div className="pointer-events-none absolute inset-0 z-20" aria-hidden="true">

@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { wedding } from "@/lib/content";
-import { PlaceholderNote, Stationery } from "@/components/ornaments";
+import { Stationery } from "@/components/ornaments";
 
 export function Faq() {
   return (
@@ -10,9 +10,6 @@ export function Faq() {
           <div className="text-center">
             <p className="font-serif text-[0.68rem] font-medium tracking-[0.28em] text-olive uppercase">Gut zu wissen</p>
             <h2 className="mt-3 font-serif text-4xl text-bronze sm:text-5xl">Fragen und Antworten</h2>
-            <div className="mt-4">
-              <PlaceholderNote>{wedding.faqNote}</PlaceholderNote>
-            </div>
           </div>
           <div className="mt-12 divide-y divide-line">
             {wedding.faq.map((item) => (

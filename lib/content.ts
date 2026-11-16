@@ -1,5 +1,5 @@
 /**
- * Texte der Einladung. Antwortfrist und Uhrzeiten sind Platzhalter.
+ * Texte der Einladung.
  */
 export const wedding = {
   couple: "Helen & Oliver",
@@ -21,8 +21,6 @@ export const wedding = {
     lines: ["Sutrum-Harum 9", "48485 Neuenkirchen"],
     mapsQuery: "Thies 42, Sutrum-Harum 9, 48485 Neuenkirchen",
   },
-  scheduleNote: "Die Uhrzeiten sind Platzhalter.",
-  faqNote: "Die Antworten sind Platzhalter.",
   faq: [
     {
       question: "Was sollen wir anziehen?",
