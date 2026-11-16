@@ -1,7 +1,8 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
+import { ADMIN_COOKIE } from "@/lib/legal";
 
-export const ADMIN_COOKIE = "oli_helen_admin";
+export { ADMIN_COOKIE };
 
 const TOKEN_PAYLOAD = "oli-helen-admin-v1";
 const MAX_AGE_SECONDS = 60 * 60 * 24 * 30;

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Stationery } from "@/components/ornaments";
+import { LegalLinks } from "@/components/legal-links";
 
 export function AccessGate() {
   const router = useRouter();
@@ -34,7 +35,7 @@ export function AccessGate() {
   }
 
   return (
-    <div className="flex min-h-dvh items-center px-4 py-10 sm:px-6">
+    <div className="flex min-h-dvh flex-col items-center justify-center px-4 py-10 pb-32 sm:px-6">
       <Stationery florals className="mx-auto w-full max-w-lg">
         <div className="px-6 pt-36 pb-40 text-center sm:px-14 sm:pt-32 sm:pb-36">
           <p className="font-script text-6xl leading-none text-bronze sm:text-7xl">
@@ -76,6 +77,7 @@ export function AccessGate() {
           </form>
         </div>
       </Stationery>
+      <LegalLinks className="mt-8" />
     </div>
   );
 }

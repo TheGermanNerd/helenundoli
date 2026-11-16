@@ -55,3 +55,23 @@ body {
 .approval-dialog::backdrop {
   background: color-mix(in srgb, #241c18 48%, transparent);
 }
+
+.save-the-date {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  place-items: center;
+  border: 0;
+  padding: 1rem;
+  background: transparent;
+  color: inherit;
+}
+
+.save-the-date::backdrop {
+  background: color-mix(in srgb, #241c18 48%, transparent);
+}

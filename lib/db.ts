@@ -28,7 +28,7 @@ const globalForDb = globalThis as unknown as {
   __schemaVersion?: number;
 };
 
-const SCHEMA_VERSION = 12;
+const SCHEMA_VERSION = 14;
 
 function ensureSchema(database: Database.Database) {
   database.exec(`
@@ -101,6 +101,10 @@ function ensureSchema(database: Database.Database) {
       last_name_required INTEGER NOT NULL DEFAULT 0 CHECK (last_name_required IN (0, 1)),
       email_required INTEGER NOT NULL DEFAULT 0 CHECK (email_required IN (0, 1))
     );
+    CREATE TABLE IF NOT EXISTS site_settings (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      save_the_date INTEGER NOT NULL DEFAULT 1 CHECK (save_the_date IN (0, 1))
+    );
   `);
   const columns = database.prepare("PRAGMA table_info(game_settings)").all() as { name: string }[];
   if (!columns.some((column) => column.name === "enabled")) {
@@ -147,6 +151,13 @@ function ensureSchema(database: Database.Database) {
       `INSERT INTO rsvp_settings (id, first_name_required, last_name_required, email_required)
        SELECT 1, 1, 0, 0
        WHERE NOT EXISTS (SELECT 1 FROM rsvp_settings WHERE id = 1)`,
+    )
+    .run();
+  database
+    .prepare(
+      `INSERT INTO site_settings (id, save_the_date)
+       SELECT 1, 1
+       WHERE NOT EXISTS (SELECT 1 FROM site_settings WHERE id = 1)`,
     )
     .run();
   const mealCount = database.prepare("SELECT COUNT(*) AS count FROM meal_options").get() as { count: number };

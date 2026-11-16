@@ -1,7 +1,8 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
+import { ACCESS_COOKIE } from "@/lib/legal";
 
-export const ACCESS_COOKIE = "oli_helen_guest";
+export { ACCESS_COOKIE };
 
 const TOKEN_PAYLOAD = "oli-helen-guest-v1";
 const MAX_AGE_SECONDS = 60 * 60 * 24 * 365;

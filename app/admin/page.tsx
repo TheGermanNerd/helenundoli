@@ -8,6 +8,7 @@ import { getRsvpFieldRules, listRsvps, summarize } from "@/lib/db";
 import { getSettings } from "@/lib/game";
 import { listMealCatalog, listMealOptions } from "@/lib/meals";
 import { autoApproveEnabled, gallerySwitches, listPhotos } from "@/lib/photos";
+import { saveTheDateEnabled } from "@/lib/site-settings";
 import { serverUsage } from "@/lib/server-usage";
 import { AdminGame } from "@/components/admin-game";
 import { AdminLogin } from "@/components/admin-login";
@@ -65,6 +66,7 @@ async function AdminContent({
         uploadButtonEnableAt={switches.button.enableAt}
         uploadButtonDisableAt={switches.button.disableAt}
         autoApproveEnabled={autoApproveEnabled()}
+        saveTheDateEnabled={saveTheDateEnabled()}
         gameEnabled={getSettings().enabled}
         meals={listMealOptions()}
         fields={getRsvpFieldRules()}

@@ -1,5 +1,10 @@
+import { Suspense } from "react";
 import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Great_Vibes, Source_Sans_3 } from "next/font/google";
+import { connection } from "next/server";
+import { CookieNotice } from "@/components/cookie-notice";
+import { SaveTheDate } from "@/components/save-the-date";
+import { saveTheDateEnabled } from "@/lib/site-settings";
 import "./globals.css";
 
 const script = Great_Vibes({
@@ -32,7 +37,19 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="de" className={`${serif.variable} ${sans.variable} ${script.variable} h-full antialiased`}>
-      <body className="min-h-full bg-linen font-sans text-ink">{children}</body>
+      <body className="min-h-full bg-linen font-sans text-ink">
+        {children}
+        <CookieNotice />
+        <Suspense fallback={null}>
+          <SaveTheDateGate />
+        </Suspense>
+      </body>
     </html>
   );
+}
+
+async function SaveTheDateGate() {
+  await connection();
+  if (!saveTheDateEnabled()) return null;
+  return <SaveTheDate />;
 }

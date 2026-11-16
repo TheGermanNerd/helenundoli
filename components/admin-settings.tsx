@@ -14,6 +14,7 @@ type SwitchProps = {
 };
 
 export function AdminSettings({
+  saveTheDateEnabled,
   photosEnabled,
   photosEnableAt,
   photosDisableAt,
@@ -24,6 +25,7 @@ export function AdminSettings({
   meals,
   fields,
 }: {
+  saveTheDateEnabled: boolean;
   photosEnabled: boolean;
   photosEnableAt: string | null;
   photosDisableAt: string | null;
@@ -36,6 +38,7 @@ export function AdminSettings({
 }) {
   return (
     <div className="space-y-10">
+      <SaveTheDateVisibility enabled={saveTheDateEnabled} />
       <RequiredFields fields={fields} />
       <MealOptions meals={meals} />
       <VisibilityCard
@@ -473,6 +476,34 @@ function planText(kind: "photos" | "button", enableAt: string | null, disableAt:
 
 function when(iso: string) {
   return formatTimestamp(iso).replace(", ", " um ");
+}
+
+function SaveTheDateVisibility({ enabled }: { enabled: boolean }) {
+  const { post, pending, error } = useAdminPost("/api/admin/site");
+
+  return (
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        void post({ action: "setSaveTheDate", enabled: !enabled });
+      }}
+      className="border border-line bg-paper px-4 py-4"
+    >
+      <h2 className="font-serif text-3xl text-bronze">Save the Date</h2>
+      <p className="mt-2 text-sm text-ink-soft">
+        Die Karte liegt über der Seite, bevor der Zugangscode kommt. Schließen gilt nur für diesen Besuch.
+      </p>
+      <p className="mt-3 text-sm">{enabled ? "Die Karte wird gezeigt." : "Die Karte ist ausgeblendet."}</p>
+      {error ? <ErrorNote message={error} /> : null}
+      <button
+        type="submit"
+        disabled={pending}
+        className="mt-4 rounded-xl bg-wine px-4 py-2 text-sm text-paper hover:bg-wine-deep disabled:opacity-60"
+      >
+        {pending ? "Wird gespeichert…" : enabled ? "Karte ausblenden" : "Karte zeigen"}
+      </button>
+    </form>
+  );
 }
 
 function GameVisibility({ enabled }: { enabled: boolean }) {

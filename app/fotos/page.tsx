@@ -8,6 +8,7 @@ import { autoApproveEnabled, galleryEnabled, uploadButtonEnabled } from "@/lib/p
 import { AccessGate } from "@/components/access-gate";
 import { PhotoUpload } from "@/components/photo-upload";
 import { Stationery } from "@/components/ornaments";
+import { LegalLinks } from "@/components/legal-links";
 
 export const metadata: Metadata = {
   title: "Fotos teilen · Helen & Oliver",
@@ -61,6 +62,9 @@ function GuestFrame({ children }: { children: React.ReactNode }) {
           <div className="px-6 py-12 sm:px-10 sm:py-14">{children}</div>
         </Stationery>
       </main>
+      <footer className="px-5 pb-12 text-center">
+        <LegalLinks />
+      </footer>
     </div>
   );
 }

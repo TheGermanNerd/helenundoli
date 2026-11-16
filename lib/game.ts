@@ -1,8 +1,9 @@
 import { randomBytes } from "node:crypto";
 import { getDb } from "@/lib/db";
 import { isTaskToken, parseSettings, parseTaskFields, TASK_LIMIT, type ParsedSettings, type ParsedTask } from "@/lib/game-input";
+import { PLAYER_COOKIE } from "@/lib/legal";
 
-export const PLAYER_COOKIE = "oli_helen_player";
+export { PLAYER_COOKIE };
 
 const PLAYER_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 
